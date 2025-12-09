@@ -17,6 +17,7 @@ import type {
 } from './third_party/index.js';
 import {puppeteer} from './third_party/index.js';
 
+// Legacy global browser reference - kept for backward compatibility with ensureBrowserLaunched
 let browser: Browser | undefined;
 
 function makeTargetFilter() {
@@ -49,10 +50,8 @@ export async function ensureBrowserConnected(options: {
   wsHeaders?: Record<string, string>;
   devtools: boolean;
 }) {
-  if (browser?.connected) {
-    return browser;
-  }
-
+  // Always create a new connection for multi-browser support
+  // Do NOT reuse the global browser variable
   const connectOptions: Parameters<typeof puppeteer.connect>[0] = {
     targetFilter: makeTargetFilter(),
     defaultViewport: null,
@@ -71,9 +70,9 @@ export async function ensureBrowserConnected(options: {
   }
 
   logger('Connecting Puppeteer to ', JSON.stringify(connectOptions));
-  browser = await puppeteer.connect(connectOptions);
+  const newBrowser = await puppeteer.connect(connectOptions);
   logger('Connected Puppeteer');
-  return browser;
+  return newBrowser;
 }
 
 interface McpLaunchOptions {

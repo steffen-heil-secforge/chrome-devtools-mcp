@@ -85,7 +85,9 @@ export class BrowserRegistry {
       );
     }
 
-    return this.get(index).context;
+    const entry = this.get(index);
+    logger(`getContext(${index}) returning context for browser: ${entry.url}`);
+    return entry.context;
   }
 
   /**
