@@ -179,6 +179,36 @@ export class McpResponse implements Response {
     return this.#snapshotParams;
   }
 
+  /**
+   * Handle response for tools that don't need browser context (e.g., list_browsers).
+   * Returns simple text-only response without any context-dependent data.
+   */
+  async handleWithoutContext(
+    toolName: string,
+  ): Promise<Array<TextContent | ImageContent>> {
+    const response = [`# ${toolName} response`];
+    for (const line of this.#textResponseLines) {
+      response.push(line);
+    }
+
+    const content: Array<TextContent | ImageContent> = [
+      {
+        type: 'text',
+        text: response.join('\n'),
+      },
+    ];
+
+    for (const image of this.#images) {
+      content.push({
+        type: 'image',
+        data: image.data,
+        mimeType: image.mimeType,
+      });
+    }
+
+    return content;
+  }
+
   async handle(
     toolName: string,
     context: McpContext,

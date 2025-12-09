@@ -8,7 +8,7 @@ import {zod} from '../third_party/index.js';
 import type {Frame, JSHandle, Page} from '../third_party/index.js';
 
 import {ToolCategory} from './categories.js';
-import {defineTool} from './ToolDefinition.js';
+import {defineTool, browserIndexSchema} from './ToolDefinition.js';
 
 export const evaluateScript = defineTool({
   name: 'evaluate_script',
@@ -19,6 +19,7 @@ so returned values have to JSON-serializable.`,
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     function: zod.string().describe(
       `A JavaScript function declaration to be executed by the tool in the currently selected page.
 Example without arguments: \`() => {

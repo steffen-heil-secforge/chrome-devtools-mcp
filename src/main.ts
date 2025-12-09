@@ -8,6 +8,7 @@ import './polyfill.js';
 
 import type {Channel} from './browser.js';
 import {ensureBrowserConnected, ensureBrowserLaunched} from './browser.js';
+import {BrowserRegistry} from './BrowserRegistry.js';
 import {parseArguments} from './cli.js';
 import {loadIssueDescriptions} from './issue-descriptions.js';
 import {logger, saveLogsToFile} from './logger.js';
@@ -46,41 +47,68 @@ server.server.setRequestHandler(SetLevelRequestSchema, () => {
   return {};
 });
 
-let context: McpContext;
-async function getContext(): Promise<McpContext> {
+const browserRegistry = BrowserRegistry.getInstance();
+
+async function initializeBrowsers(): Promise<void> {
   const extraArgs: string[] = (args.chromeArg ?? []).map(String);
   if (args.proxyServer) {
     extraArgs.push(`--proxy-server=${args.proxyServer}`);
   }
   const devtools = args.experimentalDevtools ?? false;
-  const browser =
-    args.browserUrl || args.wsEndpoint
-      ? await ensureBrowserConnected({
-          browserURL: args.browserUrl,
-          wsEndpoint: args.wsEndpoint,
-          wsHeaders: args.wsHeaders,
-          devtools,
-        })
-      : await ensureBrowserLaunched({
-          headless: args.headless,
-          executablePath: args.executablePath,
-          channel: args.channel as Channel,
-          isolated: args.isolated ?? false,
-          userDataDir: args.userDataDir,
-          logFile,
-          viewport: args.viewport,
-          args: extraArgs,
-          acceptInsecureCerts: args.acceptInsecureCerts,
-          devtools,
-        });
 
-  if (context?.browser !== browser) {
-    context = await McpContext.from(browser, logger, {
+  // Handle multiple browser URLs or WebSocket endpoints
+  if (args.browserUrl && args.browserUrl.length > 0) {
+    for (const url of args.browserUrl) {
+      const browser = await ensureBrowserConnected({
+        browserURL: url,
+        wsEndpoint: undefined,
+        wsHeaders: args.wsHeaders,
+        devtools,
+      });
+      const context = await McpContext.from(browser, logger, {
+        experimentalDevToolsDebugging: devtools,
+        experimentalIncludeAllPages: args.experimentalIncludeAllPages,
+      });
+      browserRegistry.add(browser, context, url);
+    }
+  } else if (args.wsEndpoint && args.wsEndpoint.length > 0) {
+    for (const endpoint of args.wsEndpoint) {
+      const browser = await ensureBrowserConnected({
+        browserURL: undefined,
+        wsEndpoint: endpoint,
+        wsHeaders: args.wsHeaders,
+        devtools,
+      });
+      const context = await McpContext.from(browser, logger, {
+        experimentalDevToolsDebugging: devtools,
+        experimentalIncludeAllPages: args.experimentalIncludeAllPages,
+      });
+      browserRegistry.add(browser, context, endpoint);
+    }
+  } else {
+    // Default: launch a single browser
+    const browser = await ensureBrowserLaunched({
+      headless: args.headless,
+      executablePath: args.executablePath,
+      channel: args.channel as Channel,
+      isolated: args.isolated ?? false,
+      userDataDir: args.userDataDir,
+      logFile,
+      viewport: args.viewport,
+      args: extraArgs,
+      acceptInsecureCerts: args.acceptInsecureCerts,
+      devtools,
+    });
+    const context = await McpContext.from(browser, logger, {
       experimentalDevToolsDebugging: devtools,
       experimentalIncludeAllPages: args.experimentalIncludeAllPages,
     });
+    browserRegistry.add(browser, context, 'launched');
   }
-  return context;
+
+  logger(
+    `Initialized ${browserRegistry.count()} browser${browserRegistry.count() > 1 ? 's' : ''}`,
+  );
 }
 
 const logDisclaimers = () => {
@@ -123,9 +151,28 @@ function registerTool(tool: ToolDefinition): void {
       const guard = await toolMutex.acquire();
       try {
         logger(`${tool.name} request: ${JSON.stringify(params, null, '  ')}`);
-        const context = await getContext();
-        logger(`${tool.name} context: resolved`);
-        await context.detectOpenDevToolsWindows();
+
+        // Some tools (like list_browsers) don't need a specific browser context
+        let context: McpContext;
+        if (tool.annotations.skipBrowserContext) {
+          logger(`${tool.name} skipping browser context (doesn't need one)`);
+          // For tools that don't need browser context, provide a placeholder
+          // The tool handler will use BrowserRegistry directly instead
+          context = {} as McpContext;
+        } else {
+          // Extract browserIndex from params if present
+          const browserIndex = (params as {browserIndex?: number}).browserIndex;
+          context = browserRegistry.getContext(browserIndex);
+
+          if (browserIndex !== undefined) {
+            logger(`${tool.name} using browser index: ${browserIndex}`);
+          } else {
+            logger(`${tool.name} using single browser (no index needed)`);
+          }
+
+          await context.detectOpenDevToolsWindows();
+        }
+
         const response = new McpResponse();
         await tool.handler(
           {
@@ -134,7 +181,15 @@ function registerTool(tool: ToolDefinition): void {
           response,
           context,
         );
-        const content = await response.handle(tool.name, context);
+
+        // For tools that skip browser context, handle response without context
+        let content;
+        if (tool.annotations.skipBrowserContext) {
+          content = await response.handleWithoutContext(tool.name);
+        } else {
+          content = await response.handle(tool.name, context);
+        }
+
         return {
           content,
         };
@@ -156,6 +211,8 @@ function registerTool(tool: ToolDefinition): void {
     },
   );
 }
+
+await initializeBrowsers();
 
 for (const tool of tools) {
   registerTool(tool);

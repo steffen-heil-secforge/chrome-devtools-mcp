@@ -17,7 +17,7 @@ import {
 
 import {ToolCategory} from './categories.js';
 import type {Context, Response} from './ToolDefinition.js';
-import {defineTool} from './ToolDefinition.js';
+import {defineTool, browserIndexSchema} from './ToolDefinition.js';
 
 export const startTrace = defineTool({
   name: 'performance_start_trace',
@@ -28,6 +28,7 @@ export const startTrace = defineTool({
     readOnlyHint: true,
   },
   schema: {
+    ...browserIndexSchema,
     reload: zod
       .boolean()
       .describe(
@@ -108,7 +109,9 @@ export const stopTrace = defineTool({
     category: ToolCategory.PERFORMANCE,
     readOnlyHint: true,
   },
-  schema: {},
+  schema: {
+    ...browserIndexSchema,
+  },
   handler: async (_request, response, context) => {
     if (!context.isRunningPerformanceTrace()) {
       return;
@@ -127,6 +130,7 @@ export const analyzeInsight = defineTool({
     readOnlyHint: true,
   },
   schema: {
+    ...browserIndexSchema,
     insightSetId: zod
       .string()
       .describe(

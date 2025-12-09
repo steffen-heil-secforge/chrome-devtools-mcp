@@ -24,6 +24,10 @@ export interface ToolDefinition<
      * If true, the tool does not modify its environment.
      */
     readOnlyHint: boolean;
+    /**
+     * If true, the tool does not require a browser context (e.g., list_browsers).
+     */
+    skipBrowserContext?: boolean;
   };
   schema: Schema;
   handler: (
@@ -140,4 +144,15 @@ export const timeoutSchema = {
     .transform(value => {
       return value && value <= 0 ? undefined : value;
     }),
+};
+
+export const browserIndexSchema = {
+  browserIndex: zod
+    .number()
+    .int()
+    .nonnegative()
+    .optional()
+    .describe(
+      `Index of the browser to use (0-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use list_browsers to see available browser indices.`,
+    ),
 };

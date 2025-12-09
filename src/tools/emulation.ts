@@ -7,7 +7,7 @@
 import {zod, PredefinedNetworkConditions} from '../third_party/index.js';
 
 import {ToolCategory} from './categories.js';
-import {defineTool} from './ToolDefinition.js';
+import {defineTool, browserIndexSchema} from './ToolDefinition.js';
 
 const throttlingOptions: [string, ...string[]] = [
   'No emulation',
@@ -23,6 +23,7 @@ export const emulate = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     networkConditions: zod
       .enum(throttlingOptions)
       .optional()

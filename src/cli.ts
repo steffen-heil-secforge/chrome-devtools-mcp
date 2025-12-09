@@ -9,47 +9,51 @@ import {yargs, hideBin} from './third_party/index.js';
 
 export const cliOptions = {
   browserUrl: {
-    type: 'string',
+    type: 'array',
     description:
-      'Connect to a running, debuggable Chrome instance (e.g. `http://127.0.0.1:9222`). For more details see: https://github.com/ChromeDevTools/chrome-devtools-mcp#connecting-to-a-running-chrome-instance.',
+      'Connect to one or more running, debuggable Chrome instances (e.g. `http://127.0.0.1:9222`). Can be specified multiple times. For more details see: https://github.com/ChromeDevTools/chrome-devtools-mcp#connecting-to-a-running-chrome-instance.',
     alias: 'u',
     conflicts: 'wsEndpoint',
-    coerce: (url: string | undefined) => {
-      if (!url) {
+    coerce: (urls: string[] | undefined) => {
+      if (!urls || urls.length === 0) {
         return;
       }
-      try {
-        new URL(url);
-      } catch {
-        throw new Error(`Provided browserUrl ${url} is not valid URL.`);
-      }
-      return url;
+      return urls.map(url => {
+        try {
+          new URL(url);
+          return url;
+        } catch {
+          throw new Error(`Provided browserUrl ${url} is not valid URL.`);
+        }
+      });
     },
   },
   wsEndpoint: {
-    type: 'string',
+    type: 'array',
     description:
-      'WebSocket endpoint to connect to a running Chrome instance (e.g., ws://127.0.0.1:9222/devtools/browser/<id>). Alternative to --browserUrl.',
+      'WebSocket endpoint to connect to one or more running Chrome instances (e.g., ws://127.0.0.1:9222/devtools/browser/<id>). Can be specified multiple times. Alternative to --browserUrl.',
     alias: 'w',
     conflicts: 'browserUrl',
-    coerce: (url: string | undefined) => {
-      if (!url) {
+    coerce: (urls: string[] | undefined) => {
+      if (!urls || urls.length === 0) {
         return;
       }
-      try {
-        const parsed = new URL(url);
-        if (parsed.protocol !== 'ws:' && parsed.protocol !== 'wss:') {
-          throw new Error(
-            `Provided wsEndpoint ${url} must use ws:// or wss:// protocol.`,
-          );
+      return urls.map(url => {
+        try {
+          const parsed = new URL(url);
+          if (parsed.protocol !== 'ws:' && parsed.protocol !== 'wss:') {
+            throw new Error(
+              `Provided wsEndpoint ${url} must use ws:// or wss:// protocol.`,
+            );
+          }
+          return url;
+        } catch (error) {
+          if ((error as Error).message.includes('ws://')) {
+            throw error;
+          }
+          throw new Error(`Provided wsEndpoint ${url} is not valid URL.`);
         }
-        return url;
-      } catch (error) {
-        if ((error as Error).message.includes('ws://')) {
-          throw error;
-        }
-        throw new Error(`Provided wsEndpoint ${url} is not valid URL.`);
-      }
+      });
     },
   },
   wsHeaders: {
@@ -188,6 +192,10 @@ export function parseArguments(version: string, argv = process.argv) {
       [
         '$0 --browserUrl http://127.0.0.1:9222',
         'Connect to an existing browser instance via HTTP',
+      ],
+      [
+        '$0 --browserUrl http://127.0.0.1:9222 --browserUrl http://127.0.0.1:9223',
+        'Connect to multiple browser instances',
       ],
       [
         '$0 --wsEndpoint ws://127.0.0.1:9222/devtools/browser/abc123',
