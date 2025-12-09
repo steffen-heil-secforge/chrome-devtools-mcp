@@ -11,7 +11,7 @@ import type {ElementHandle} from '../third_party/index.js';
 import {parseKey} from '../utils/keyboard.js';
 
 import {ToolCategory} from './categories.js';
-import {defineTool} from './ToolDefinition.js';
+import {defineTool, browserIndexSchema} from './ToolDefinition.js';
 
 const dblClickSchema = zod
   .boolean()
@@ -41,6 +41,7 @@ export const click = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     uid: zod
       .string()
       .describe(
@@ -114,6 +115,7 @@ export const hover = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     uid: zod
       .string()
       .describe(
@@ -210,6 +212,7 @@ export const fill = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     uid: zod
       .string()
       .describe(
@@ -241,6 +244,7 @@ export const drag = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     from_uid: zod.string().describe('The uid of the element to drag'),
     to_uid: zod.string().describe('The uid of the element to drop into'),
     includeSnapshot: includeSnapshotSchema,
@@ -273,6 +277,7 @@ export const fillForm = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     elements: zod
       .array(
         zod.object({
@@ -308,6 +313,7 @@ export const uploadFile = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     uid: zod
       .string()
       .describe(
@@ -359,6 +365,7 @@ export const pressKey = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     key: zod
       .string()
       .describe(

@@ -8,7 +8,7 @@ import {zod} from '../third_party/index.js';
 import type {ConsoleMessageType} from '../third_party/index.js';
 
 import {ToolCategory} from './categories.js';
-import {defineTool} from './ToolDefinition.js';
+import {defineTool, browserIndexSchema} from './ToolDefinition.js';
 type ConsoleResponseType = ConsoleMessageType | 'issue';
 
 const FILTERABLE_MESSAGE_TYPES: [
@@ -46,6 +46,7 @@ export const listConsoleMessages = defineTool({
     readOnlyHint: true,
   },
   schema: {
+    ...browserIndexSchema,
     pageSize: zod
       .number()
       .int()
@@ -94,6 +95,7 @@ export const getConsoleMessage = defineTool({
     readOnlyHint: true,
   },
   schema: {
+    ...browserIndexSchema,
     msgid: zod
       .number()
       .describe(
