@@ -35,30 +35,30 @@ export class BrowserRegistry {
 
   /**
    * Add a browser to the registry.
-   * @returns The index of the added browser
+   * @returns The index of the added browser (1-based)
    */
   add(browser: Browser, context: McpContext, url: string): number {
-    const index = this.browsers.length;
     this.browsers.push({browser, context, url});
+    const index = this.browsers.length; // 1-based index
     logger(`Browser registered at index ${index}: ${url}`);
     return index;
   }
 
   /**
-   * Get a browser entry by index.
+   * Get a browser entry by index (1-based).
    * @throws Error if index is out of bounds
    */
   get(index: number): BrowserEntry {
-    if (index < 0 || index >= this.browsers.length) {
+    if (index < 1 || index > this.browsers.length) {
       throw new Error(
-        `Browser index ${index} is out of bounds. Valid range: 0-${this.browsers.length - 1}`,
+        `Browser index ${index} is out of bounds. Valid range: 1-${this.browsers.length}`,
       );
     }
-    return this.browsers[index];
+    return this.browsers[index - 1]; // Convert 1-based to 0-based array access
   }
 
   /**
-   * Get the context for a specific browser by index.
+   * Get the context for a specific browser by index (1-based).
    * If there is only one browser, index MUST be undefined.
    * If there are multiple browsers, index MUST be specified.
    * @throws Error if index is specified when only one browser exists
@@ -81,7 +81,7 @@ export class BrowserRegistry {
     if (index === undefined) {
       throw new Error(
         `browserIndex parameter is required when multiple browsers are connected. ` +
-          `Use list_browsers to see available browsers (0-${this.browsers.length - 1}).`,
+          `Use list_browsers to see available browsers (1-${this.browsers.length}).`,
       );
     }
 

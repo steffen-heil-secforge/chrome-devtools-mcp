@@ -71,7 +71,7 @@ describe('browser_management', () => {
 
       assert.strictEqual(response.responseLines[0], 'Total browsers: 1\n');
       assert.ok(
-        response.responseLines[1].includes('[0] http://127.0.0.1:9222'),
+        response.responseLines[1].includes('[1] http://127.0.0.1:9222'),
       );
       assert.ok(response.responseLines[1].includes('connected'));
       assert.ok(response.responseLines[2].includes('Single browser mode'));
@@ -97,10 +97,10 @@ describe('browser_management', () => {
 
       assert.strictEqual(response.responseLines[0], 'Total browsers: 2\n');
       assert.ok(
-        response.responseLines[1].includes('[0] http://127.0.0.1:9222'),
+        response.responseLines[1].includes('[1] http://127.0.0.1:9222'),
       );
       assert.ok(
-        response.responseLines[2].includes('[1] http://127.0.0.1:9223'),
+        response.responseLines[2].includes('[2] http://127.0.0.1:9223'),
       );
       assert.ok(
         response.responseLines[3].includes('Multiple browsers detected'),
