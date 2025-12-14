@@ -31,12 +31,12 @@ describe('BrowserRegistry', () => {
     const index1 = registry.add(browser1, context1, 'http://localhost:9222');
     const index2 = registry.add(browser2, context2, 'http://localhost:9223');
 
-    assert.strictEqual(index1, 0);
-    assert.strictEqual(index2, 1);
+    assert.strictEqual(index1, 1);
+    assert.strictEqual(index2, 2);
     assert.strictEqual(registry.count(), 2);
 
-    const entry1 = registry.get(0);
-    const entry2 = registry.get(1);
+    const entry1 = registry.get(1);
+    const entry2 = registry.get(2);
 
     assert.strictEqual(entry1.browser, browser1);
     assert.strictEqual(entry1.context, context1);
@@ -72,7 +72,7 @@ describe('BrowserRegistry', () => {
 
     assert.throws(() => registry.get(5), /Browser index 5 is out of bounds/);
 
-    assert.throws(() => registry.get(-1), /Browser index -1 is out of bounds/);
+    assert.throws(() => registry.get(0), /Browser index 0 is out of bounds/);
   });
 
   it('single browser: getContext works without index', () => {
@@ -94,7 +94,7 @@ describe('BrowserRegistry', () => {
     registry.add(browser, context, 'http://localhost:9222');
 
     assert.throws(
-      () => registry.getContext(0),
+      () => registry.getContext(1),
       /browserIndex parameter must NOT be specified when only one browser is connected/,
     );
   });
@@ -125,8 +125,8 @@ describe('BrowserRegistry', () => {
     registry.add(browser1, context1, 'http://localhost:9222');
     registry.add(browser2, context2, 'http://localhost:9223');
 
-    const retrieved1 = registry.getContext(0);
-    const retrieved2 = registry.getContext(1);
+    const retrieved1 = registry.getContext(1);
+    const retrieved2 = registry.getContext(2);
 
     assert.strictEqual(retrieved1, context1);
     assert.strictEqual(retrieved2, context2);

@@ -150,9 +150,9 @@ export const browserIndexSchema = {
   browserIndex: zod
     .number()
     .int()
-    .nonnegative()
+    .positive()
     .optional()
     .describe(
-      `Index of the browser to use (0-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use list_browsers to see available browser indices.`,
+      `Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use list_browsers to see available browser indices.`,
     ),
 };

@@ -53,10 +53,10 @@ export const browserIndexSchema = {
   browserIndex: zod
     .number()
     .int()
-    .nonnegative()
+    .positive()
     .optional()
     .describe(
-      `Index of the browser to use (0-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter can be omitted. Use list_browsers to see available browser indices.`,
+      `Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter can be omitted. Use list_browsers to see available browser indices.`,
     ),
 };
 ```
@@ -95,7 +95,7 @@ Lists all connected browsers with their indices and connection status.
 ```
 Total browsers: 1
 
-[0] http://127.0.0.1:9222 - connected
+[1] http://127.0.0.1:9222 - connected
 
 Single browser mode: browserIndex parameter must NOT be specified.
 ```
@@ -105,8 +105,8 @@ Single browser mode: browserIndex parameter must NOT be specified.
 ```
 Total browsers: 2
 
-[0] http://127.0.0.1:9222 - connected
-[1] http://127.0.0.1:9223 - connected
+[1] http://127.0.0.1:9222 - connected
+[2] http://127.0.0.1:9223 - connected
 
 Multiple browsers detected. You MUST specify browserIndex parameter in all tool calls to target a specific browser.
 ```
@@ -141,31 +141,31 @@ await client.callTool('take_screenshot', {
 
 // This would be an ERROR in single browser mode:
 await client.callTool('take_screenshot', {
-  browserIndex: 0, // ❌ Error: browserIndex must NOT be specified
+  browserIndex: 1, // ❌ Error: browserIndex must NOT be specified
   format: 'png',
 });
 
 // MULTIPLE BROWSER MODE (browserIndex REQUIRED)
-// Take screenshot from browser 0
-await client.callTool('take_screenshot', {
-  browserIndex: 0,
-  format: 'png',
-});
-
 // Take screenshot from browser 1
 await client.callTool('take_screenshot', {
   browserIndex: 1,
   format: 'png',
 });
 
-// List pages from browser 1
-await client.callTool('list_pages', {
-  browserIndex: 1,
+// Take screenshot from browser 2
+await client.callTool('take_screenshot', {
+  browserIndex: 2,
+  format: 'png',
 });
 
-// Navigate page in browser 0
+// List pages from browser 2
+await client.callTool('list_pages', {
+  browserIndex: 2,
+});
+
+// Navigate page in browser 1
 await client.callTool('navigate_page', {
-  browserIndex: 0,
+  browserIndex: 1,
   type: 'url',
   url: 'https://example.com',
 });
@@ -273,8 +273,8 @@ The following tool files have been updated to include `browserIndexSchema`:
    - Call `list_browsers` again → browser 1 should be marked as default
 
 4. **Test tool routing:**
-   - Navigate browser 0 to `https://example.com`: `navigate_page` with `browserIndex: 0`
-   - Navigate browser 1 to `https://google.com`: `navigate_page` with `browserIndex: 1`
+   - Navigate browser 1 to `https://example.com`: `navigate_page` with `browserIndex: 1`
+   - Navigate browser 2 to `https://google.com`: `navigate_page` with `browserIndex: 2`
    - Take screenshots from both
    - Verify pages are different
 
@@ -350,11 +350,11 @@ take_screenshot with format=png
 
 ```
 list_browsers
-→ Shows: [0], [1], [2]
+→ Shows: [1], [2], [3]
 → Warning: "You MUST specify browserIndex parameter in all tool calls"
 
-take_screenshot with browserIndex=1, format=png
-→ Takes screenshot from browser 1
+take_screenshot with browserIndex=2, format=png
+→ Takes screenshot from browser 2
 
 take_screenshot with format=png (no browserIndex)
 → Error: "browserIndex parameter is required when multiple browsers are connected"

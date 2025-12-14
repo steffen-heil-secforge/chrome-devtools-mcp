@@ -32,7 +32,7 @@ export const listBrowsers = defineTool({
     for (let i = 0; i < browsers.length; i++) {
       const entry = browsers[i];
       response.appendResponseLine(
-        `[${i}] ${entry.url} - ${entry.browser.connected ? 'connected' : 'disconnected'}`,
+        `[${i + 1}] ${entry.url} - ${entry.browser.connected ? 'connected' : 'disconnected'}`,
       );
     }
 
