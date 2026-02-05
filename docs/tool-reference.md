@@ -2,7 +2,7 @@
 
 # Chrome DevTools MCP Tool Reference
 
-- **[Input automation](#input-automation)** (8 tools)
+- **[Input automation](#input-automation)** (9 tools)
   - [`click`](#click)
   - [`drag`](#drag)
   - [`fill`](#fill)
@@ -10,13 +10,15 @@
   - [`handle_dialog`](#handle_dialog)
   - [`hover`](#hover)
   - [`press_key`](#press_key)
+  - [`press_keys`](#press_keys)
   - [`upload_file`](#upload_file)
-- **[Navigation automation](#navigation-automation)** (7 tools)
+- **[Navigation automation](#navigation-automation)** (8 tools)
   - [`close_page`](#close_page)
   - [`list_browsers`](#list_browsers)
   - [`list_pages`](#list_pages)
   - [`navigate_page`](#navigate_page)
   - [`new_page`](#new_page)
+  - [`reconnect_browser`](#reconnect_browser)
   - [`select_page`](#select_page)
   - [`wait_for`](#wait_for)
 - **[Emulation](#emulation)** (2 tools)
@@ -125,6 +127,17 @@
 
 ---
 
+### `press_keys`
+
+**Description:** Press multiple keys or key combinations in sequence. Use this when you need to perform a series of key presses.
+
+**Parameters:**
+
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
+- **keys** (array) **(required)**: An array of keys or key combinations to press in sequence
+
+---
+
 ### `upload_file`
 
 **Description:** Upload a file through a provided element.
@@ -161,7 +174,7 @@
 
 ### `list_browsers`
 
-**Description:** Get a list of all connected browsers. Use this to see which browsers are available and their indices. When multiple browsers are connected, you must use the browserIndex parameter in tools to specify which browser to target.
+**Description:** Get a list of all registered browsers and their connection states. Use this to see which browsers are available, their indices, and whether they are connected. When multiple browsers are registered, you must use the browserIndex parameter in tools to specify which browser to target.
 
 **Parameters:** None
 
@@ -218,6 +231,16 @@
 - **url** (string) **(required)**: URL to load in a new page.
 - **background** (boolean) _(optional)_: Whether to open the page in the background without bringing it to the front. Default is false (foreground).
 - **timeout** (integer) _(optional)_: Maximum wait time in milliseconds. If set to 0, the default timeout will be used.
+
+---
+
+### `reconnect_browser`
+
+**Description:** Manually reconnect to a disconnected browser. Use this when a browser connection was lost or failed. In single-browser mode, no parameter needed. In multi-browser mode, specify browserIndex.
+
+**Parameters:**
+
+- **browserIndex** (integer) _(optional)_: Index of the browser to reconnect (1-based). Required in multi-browser mode.
 
 ---
 

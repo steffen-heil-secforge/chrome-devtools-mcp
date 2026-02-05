@@ -9,12 +9,10 @@ import './polyfill.js';
 import process from 'node:process';
 
 import type {Channel} from './browser.js';
-import {ensureBrowserConnected, ensureBrowserLaunched} from './browser.js';
-import {BrowserRegistry} from './BrowserRegistry.js';
+import {BrowserRegistry, type BrowserConfig} from './BrowserRegistry.js';
 import {cliOptions, parseArguments} from './cli.js';
 import {loadIssueDescriptions} from './issue-descriptions.js';
 import {logger, saveLogsToFile} from './logger.js';
-import {McpContext} from './McpContext.js';
 import {McpResponse} from './McpResponse.js';
 import {Mutex} from './Mutex.js';
 import {ClearcutLogger} from './telemetry/clearcut-logger.js';
@@ -78,66 +76,67 @@ server.server.setRequestHandler(SetLevelRequestSchema, () => {
 
 const browserRegistry = BrowserRegistry.getInstance();
 
-async function initializeBrowsers(): Promise<void> {
+/**
+ * Register browser configurations without connecting.
+ * This allows the MCP server to start immediately without blocking on browser connections.
+ */
+function registerBrowserConfigs(): void {
   const extraArgs: string[] = (args.chromeArg ?? []).map(String);
   if (args.proxyServer) {
     extraArgs.push(`--proxy-server=${args.proxyServer}`);
   }
   const devtools = args.experimentalDevtools ?? false;
+  const mcpContextOptions = {
+    experimentalDevToolsDebugging: devtools,
+    experimentalIncludeAllPages: args.experimentalIncludeAllPages,
+    performanceCrux: args.performanceCrux,
+  };
 
   // Handle multiple browser URLs or WebSocket endpoints
   if (args.browserUrl && args.browserUrl.length > 0) {
-    for (const url of args.browserUrl) {
-      const browser = await ensureBrowserConnected({
-        browserURL: url,
-        wsEndpoint: undefined,
+    for (const browserUrlConfig of args.browserUrl) {
+      const config: BrowserConfig = {
+        browserURL: browserUrlConfig.url,
         wsHeaders: args.wsHeaders,
         devtools,
-      });
-      const context = await McpContext.from(browser, logger, {
-        experimentalDevToolsDebugging: devtools,
-        experimentalIncludeAllPages: args.experimentalIncludeAllPages,
-      });
-      browserRegistry.add(browser, context, url);
+        mcpContextOptions,
+        startCommand: browserUrlConfig.startCommand,
+      };
+      browserRegistry.register(config, browserUrlConfig.url);
     }
   } else if (args.wsEndpoint && args.wsEndpoint.length > 0) {
     for (const endpoint of args.wsEndpoint) {
-      const browser = await ensureBrowserConnected({
-        browserURL: undefined,
+      const config: BrowserConfig = {
         wsEndpoint: endpoint,
         wsHeaders: args.wsHeaders,
         devtools,
-      });
-      const context = await McpContext.from(browser, logger, {
-        experimentalDevToolsDebugging: devtools,
-        experimentalIncludeAllPages: args.experimentalIncludeAllPages,
-      });
-      browserRegistry.add(browser, context, endpoint);
+        mcpContextOptions,
+      };
+      browserRegistry.register(config, endpoint);
     }
   } else {
-    // Default: launch a single browser
-    const browser = await ensureBrowserLaunched({
-      headless: args.headless,
-      executablePath: args.executablePath,
-      channel: args.channel as Channel,
-      isolated: args.isolated ?? false,
-      userDataDir: args.userDataDir,
-      logFile,
-      viewport: args.viewport,
-      args: extraArgs,
-      acceptInsecureCerts: args.acceptInsecureCerts,
+    // Default: register a single browser for launch
+    const config: BrowserConfig = {
+      launchOptions: {
+        headless: args.headless,
+        executablePath: args.executablePath,
+        channel: args.channel as Channel,
+        isolated: args.isolated ?? false,
+        userDataDir: args.userDataDir,
+        logFile,
+        viewport: args.viewport,
+        args: extraArgs,
+        acceptInsecureCerts: args.acceptInsecureCerts,
+        devtools,
+      },
       devtools,
-    });
-    const context = await McpContext.from(browser, logger, {
-      experimentalDevToolsDebugging: devtools,
-      experimentalIncludeAllPages: args.experimentalIncludeAllPages,
-      performanceCrux: args.performanceCrux,
-    });
-    browserRegistry.add(browser, context, 'launched');
+      mcpContextOptions,
+    };
+    browserRegistry.register(config, 'launched');
   }
 
   logger(
-    `Initialized ${browserRegistry.count()} browser${browserRegistry.count() > 1 ? 's' : ''}`,
+    `Registered ${browserRegistry.count()} browser${browserRegistry.count() > 1 ? 's' : ''} (connections pending)`,
   );
 }
 
@@ -216,17 +215,17 @@ function registerTool(tool: ToolDefinition): void {
       try {
         logger(`${tool.name} request: ${JSON.stringify(params, null, '  ')}`);
 
-        // Some tools (like list_browsers) don't need a specific browser context
-        let context: McpContext;
+        // Some tools (like list_browsers, reconnect_browser) don't need a specific browser context
+        let context: Awaited<ReturnType<typeof browserRegistry.getContext>>;
         if (tool.annotations.skipBrowserContext) {
           logger(`${tool.name} skipping browser context (doesn't need one)`);
           // For tools that don't need browser context, provide a placeholder
           // The tool handler will use BrowserRegistry directly instead
-          context = {} as McpContext;
+          context = {} as typeof context;
         } else {
           // Extract browserIndex from params if present
           const browserIndex = (params as {browserIndex?: number}).browserIndex;
-          context = browserRegistry.getContext(browserIndex);
+          context = await browserRegistry.getContext(browserIndex);
 
           if (browserIndex !== undefined) {
             logger(`${tool.name} using browser index: ${browserIndex}`);
@@ -295,7 +294,8 @@ function registerTool(tool: ToolDefinition): void {
   );
 }
 
-await initializeBrowsers();
+// Register browser configs without connecting (non-blocking)
+registerBrowserConfigs();
 
 for (const tool of tools) {
   registerTool(tool);
@@ -308,3 +308,6 @@ logger('Chrome DevTools MCP Server connected');
 logDisclaimers();
 void clearcutLogger?.logDailyActiveIfNeeded();
 void clearcutLogger?.logServerStart(computeFlagUsage(args, cliOptions));
+
+// Start browser connections in the background (fire-and-forget)
+browserRegistry.connectAllInBackground();

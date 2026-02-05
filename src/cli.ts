@@ -7,6 +7,11 @@
 import type {YargsOptions} from './third_party/index.js';
 import {yargs, hideBin} from './third_party/index.js';
 
+export interface BrowserUrlConfig {
+  url: string;
+  startCommand?: string;
+}
+
 export const cliOptions = {
   autoConnect: {
     type: 'boolean',
@@ -24,20 +29,46 @@ export const cliOptions = {
   browserUrl: {
     type: 'array',
     description:
-      'Connect to one or more running, debuggable Chrome instances (e.g. `http://127.0.0.1:9222`). Can be specified multiple times. For more details see: https://github.com/ChromeDevTools/chrome-devtools-mcp#connecting-to-a-running-chrome-instance.',
+      'Connect to one or more running, debuggable Chrome instances. Format: `url` or `url|start-command`. The start-command is executed via shell when a reconnect is requested (e.g. using `reconnect_browser`) and the browser is not reachable. Can be specified multiple times. For more details see: https://github.com/ChromeDevTools/chrome-devtools-mcp#connecting-to-a-running-chrome-instance.',
     alias: 'u',
     conflicts: 'wsEndpoint',
-    coerce: (urls: string[] | undefined) => {
-      if (!urls || urls.length === 0) {
+    coerce: (values: string[] | undefined): BrowserUrlConfig[] | undefined => {
+      if (!values || values.length === 0) {
         return;
       }
-      return urls.map(url => {
+      // Filter out empty strings
+      const nonEmptyValues = values.filter(v => v && v.trim() !== '');
+      if (nonEmptyValues.length === 0) {
+        return;
+      }
+      return nonEmptyValues.map(value => {
+        // Split on first | to separate URL from optional start command
+        const pipeIndex = value.indexOf('|');
+        let url: string;
+        let startCommand: string | undefined;
+
+        if (pipeIndex === -1) {
+          url = value;
+        } else {
+          url = value.substring(0, pipeIndex);
+          startCommand = value.substring(pipeIndex + 1).trim();
+          if (startCommand === '') {
+            startCommand = undefined;
+          }
+        }
+
         try {
           new URL(url);
-          return url;
         } catch {
           throw new Error(`Provided browserUrl ${url} is not valid URL.`);
         }
+
+        // Only include startCommand if it's defined
+        const result: BrowserUrlConfig = {url};
+        if (startCommand) {
+          result.startCommand = startCommand;
+        }
+        return result;
       });
     },
   },

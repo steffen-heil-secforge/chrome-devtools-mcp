@@ -304,6 +304,7 @@ export function getMockPage(): Page {
 export function getMockBrowser(): Browser {
   const pages = [getMockPage()];
   return {
+    connected: true,
     pages() {
       return Promise.resolve(pages);
     },
