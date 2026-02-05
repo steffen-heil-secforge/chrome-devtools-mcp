@@ -75,7 +75,7 @@ describe('pages', () => {
         const page = await context.newPage();
         assert.strictEqual(context.getPageById(2), context.getSelectedPage());
         assert.strictEqual(context.getPageById(2), page);
-        await closePage.handler({params: {pageIdx: 2}}, response, context);
+        await closePage.handler({params: {pageId: 2}}, response, context);
         assert.ok(page.isClosed());
         assert.ok(response.includePages);
       });
@@ -83,7 +83,7 @@ describe('pages', () => {
     it('cannot close the last page', async () => {
       await withMcpContext(async (response, context) => {
         const page = context.getSelectedPage();
-        await closePage.handler({params: {pageIdx: 1}}, response, context);
+        await closePage.handler({params: {pageId: 1}}, response, context);
         assert.deepStrictEqual(
           response.responseLines[0],
           `The last open page cannot be closed. It is fine to keep it open.`,
@@ -98,7 +98,7 @@ describe('pages', () => {
       await withMcpContext(async (response, context) => {
         await context.newPage();
         assert.strictEqual(context.getPageById(2), context.getSelectedPage());
-        await selectPage.handler({params: {pageIdx: 1}}, response, context);
+        await selectPage.handler({params: {pageId: 1}}, response, context);
         assert.strictEqual(context.getPageById(1), context.getSelectedPage());
         assert.ok(response.includePages);
       });
@@ -111,7 +111,7 @@ describe('pages', () => {
           await context.getPageById(1).evaluate(() => document.hasFocus()),
           false,
         );
-        await selectPage.handler({params: {pageIdx: 1}}, response, context);
+        await selectPage.handler({params: {pageId: 1}}, response, context);
         assert.strictEqual(context.getPageById(1), context.getSelectedPage());
         assert.strictEqual(
           await context.getPageById(1).evaluate(() => document.hasFocus()),
@@ -595,7 +595,7 @@ describe('pages', () => {
         assert.ok(typeof page._tabId === 'string');
         // @ts-expect-error _tabId is internal.
         page._tabId = 'test-tab-id';
-        await getTabId.handler({params: {pageIdx: 1}}, response, context);
+        await getTabId.handler({params: {pageId: 1}}, response, context);
         const result = await response.handle('get_tab_id', context);
         // @ts-expect-error _tabId is internal.
         assert.strictEqual(result.structuredContent.tabId, 'test-tab-id');

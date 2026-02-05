@@ -155,11 +155,11 @@
 
 ### `close_page`
 
-**Description:** Closes the page by its index. The last open page cannot be closed.
+**Description:** Closes the page by its ID. The last open page cannot be closed.
 
 **Parameters:**
 
-- **pageIdx** (number) **(required)**: The index of the page to close. Call [`list_pages`](#list_pages) to list pages.
+- **pageId** (number) **(required)**: The ID of the page to close. Call [`list_pages`](#list_pages) to list pages.
 - **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 
 ---
@@ -227,7 +227,7 @@
 
 **Parameters:**
 
-- **pageIdx** (number) **(required)**: The index of the page to select. Call [`list_pages`](#list_pages) to list pages.
+- **pageId** (number) **(required)**: The ID of the page to select. Call [`list_pages`](#list_pages) to get available pages.
 - **bringToFront** (boolean) _(optional)_: Whether to focus the page and bring it to the top.
 - **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 

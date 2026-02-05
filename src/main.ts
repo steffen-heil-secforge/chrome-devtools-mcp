@@ -114,8 +114,23 @@ function registerBrowserConfigs(): void {
       };
       browserRegistry.register(config, endpoint);
     }
+  } else if (args.autoConnect) {
+    // Auto-connect to browser using channel/userDataDir
+    const label = args.userDataDir
+      ? `user-data-dir:${args.userDataDir}`
+      : `channel:${args.channel}`;
+    const config: BrowserConfig = {
+      channel: args.channel as Channel,
+      userDataDir: args.userDataDir,
+      devtools,
+      mcpContextOptions,
+    };
+    browserRegistry.register(config, label);
   } else {
     // Default: register a single browser for launch
+    const ignoreDefaultChromeArgs: string[] = (
+      args.ignoreDefaultChromeArg ?? []
+    ).map(String);
     const config: BrowserConfig = {
       launchOptions: {
         headless: args.headless,
@@ -126,8 +141,10 @@ function registerBrowserConfigs(): void {
         logFile,
         viewport: args.viewport,
         chromeArgs: extraArgs,
+        ignoreDefaultChromeArgs,
         acceptInsecureCerts: args.acceptInsecureCerts,
         devtools,
+        enableExtensions: args.categoryExtensions,
       },
       devtools,
       mcpContextOptions,

@@ -40,10 +40,10 @@ export const selectPage = defineTool({
   },
   schema: {
     ...browserIndexSchema,
-    pageIdx: zod
+    pageId: zod
       .number()
       .describe(
-        `The index of the page to select. Call ${listPages.name} to list pages.`,
+        `The ID of the page to select. Call ${listPages.name} to get available pages.`,
       ),
     bringToFront: zod
       .boolean()
@@ -51,7 +51,7 @@ export const selectPage = defineTool({
       .describe('Whether to focus the page and bring it to the top.'),
   },
   handler: async (request, response, context) => {
-    const page = context.getPageById(request.params.pageIdx);
+    const page = context.getPageById(request.params.pageId);
     context.selectPage(page);
     response.setIncludePages(true);
     if (request.params.bringToFront) {
@@ -62,22 +62,20 @@ export const selectPage = defineTool({
 
 export const closePage = defineTool({
   name: 'close_page',
-  description: `Closes the page by its index. The last open page cannot be closed.`,
+  description: `Closes the page by its ID. The last open page cannot be closed.`,
   annotations: {
     category: ToolCategory.NAVIGATION,
     readOnlyHint: false,
   },
   schema: {
     ...browserIndexSchema,
-    pageIdx: zod
+    pageId: zod
       .number()
-      .describe(
-        'The index of the page to close. Call list_pages to list pages.',
-      ),
+      .describe('The ID of the page to close. Call list_pages to list pages.'),
   },
   handler: async (request, response, context) => {
     try {
-      await context.closePage(request.params.pageIdx);
+      await context.closePage(request.params.pageId);
     } catch (err) {
       if (err.message === CLOSE_PAGE_ERROR) {
         response.appendResponseLine(err.message);
@@ -373,14 +371,14 @@ export const getTabId = defineTool({
     conditions: ['experimentalInteropTools'],
   },
   schema: {
-    pageIdx: zod
+    pageId: zod
       .number()
       .describe(
-        `The index of the page to get the tab ID for. Call ${listPages.name} to list pages.`,
+        `The ID of the page to get the tab ID for. Call ${listPages.name} to get available pages.`,
       ),
   },
   handler: async (request, response, context) => {
-    const page = context.getPageById(request.params.pageIdx);
+    const page = context.getPageById(request.params.pageId);
     // @ts-expect-error _tabId is internal.
     const tabId = page._tabId;
     response.setTabId(tabId);

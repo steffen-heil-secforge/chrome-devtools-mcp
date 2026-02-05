@@ -6,6 +6,7 @@
 
 import {spawn} from 'node:child_process';
 
+import type {Channel} from './browser.js';
 import {
   ensureBrowserConnected,
   launch,
@@ -32,6 +33,8 @@ export interface BrowserConfig {
   browserURL?: string;
   wsEndpoint?: string;
   wsHeaders?: Record<string, string>;
+  channel?: Channel;
+  userDataDir?: string;
   launchOptions?: McpLaunchOptions;
   devtools: boolean;
   mcpContextOptions: McpContextOptions;
@@ -146,6 +149,8 @@ export class BrowserRegistry {
           wsEndpoint: entry.config.wsEndpoint,
           wsHeaders: entry.config.wsHeaders,
           devtools: entry.config.devtools,
+          channel: entry.config.channel,
+          userDataDir: entry.config.userDataDir,
         });
   }
 
