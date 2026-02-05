@@ -75,7 +75,7 @@ export async function ensureBrowserConnected(options: {
   return newBrowser;
 }
 
-interface McpLaunchOptions {
+export interface McpLaunchOptions {
   acceptInsecureCerts?: boolean;
   executablePath?: string;
   channel?: Channel;

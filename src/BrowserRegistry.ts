@@ -4,15 +4,51 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import {spawn} from 'node:child_process';
+
+import {
+  ensureBrowserConnected,
+  launch,
+  type McpLaunchOptions,
+} from './browser.js';
 import {logger} from './logger.js';
-import type {McpContext} from './McpContext.js';
+import {McpContext} from './McpContext.js';
+import {Mutex} from './Mutex.js';
 import type {Browser} from './third_party/index.js';
 
+export type ConnectionState =
+  | 'pending'
+  | 'connecting'
+  | 'connected'
+  | 'disconnected';
+
+export interface McpContextOptions {
+  experimentalDevToolsDebugging: boolean;
+  experimentalIncludeAllPages?: boolean;
+}
+
+export interface BrowserConfig {
+  browserURL?: string;
+  wsEndpoint?: string;
+  wsHeaders?: Record<string, string>;
+  launchOptions?: McpLaunchOptions;
+  devtools: boolean;
+  mcpContextOptions: McpContextOptions;
+  startCommand?: string; // Shell command to start the browser on reconnect if connection fails
+}
+
 export interface BrowserEntry {
-  browser: Browser;
-  context: McpContext;
+  config: BrowserConfig;
+  browser?: Browser;
+  context?: McpContext;
+  state: ConnectionState;
+  lastError?: Error;
+  lastAttempt?: number;
+  connectionMutex: Mutex;
   url: string;
 }
+
+const RETRY_COOLDOWN_MS = 60_000; // 1 minute cooldown before auto-retry
 
 /**
  * Registry for managing multiple browser instances in parallel.
@@ -34,14 +70,251 @@ export class BrowserRegistry {
   }
 
   /**
-   * Add a browser to the registry.
+   * Register a browser configuration without connecting.
+   * @returns The index of the registered browser (1-based)
+   */
+  register(config: BrowserConfig, url: string): number {
+    this.browsers.push({
+      config,
+      state: 'pending',
+      connectionMutex: new Mutex(),
+      url,
+    });
+    const index = this.browsers.length;
+    logger(`Browser registered at index ${index}: ${url} (pending)`);
+    return index;
+  }
+
+  /**
+   * Add an already-connected browser to the registry.
+   * Used for testing and backwards compatibility.
    * @returns The index of the added browser (1-based)
    */
-  add(browser: Browser, context: McpContext, url: string): number {
-    this.browsers.push({browser, context, url});
-    const index = this.browsers.length; // 1-based index
-    logger(`Browser registered at index ${index}: ${url}`);
+  addConnectedBrowser(
+    browser: Browser,
+    context: McpContext,
+    url: string,
+  ): number {
+    this.browsers.push({
+      config: {
+        devtools: false,
+        mcpContextOptions: {
+          experimentalDevToolsDebugging: false,
+        },
+      },
+      browser,
+      context,
+      state: 'connected',
+      connectionMutex: new Mutex(),
+      url,
+    });
+    const index = this.browsers.length;
+    logger(`Browser added at index ${index}: ${url} (connected)`);
     return index;
+  }
+
+  /**
+   * Spawn start command for a browser via shell.
+   * The command runs detached so it doesn't block and won't keep the parent alive.
+   */
+  private spawnStartCommand(index: number, command: string): void {
+    logger(`Browser ${index}: Spawning start command: ${command}`);
+    const child = spawn(command, {
+      shell: true,
+      detached: true,
+      stdio: 'ignore',
+    });
+    child.unref();
+  }
+
+  /**
+   * Wait for a specified number of milliseconds.
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Try to connect to a browser.
+   */
+  private async tryConnect(entry: BrowserEntry): Promise<Browser> {
+    return entry.config.launchOptions
+      ? await launch(entry.config.launchOptions)
+      : await ensureBrowserConnected({
+          browserURL: entry.config.browserURL,
+          wsEndpoint: entry.config.wsEndpoint,
+          wsHeaders: entry.config.wsHeaders,
+          devtools: entry.config.devtools,
+        });
+  }
+
+  /**
+   * Attempt connection to a browser (called by reconnect_browser or background init).
+   * @param index Browser index (1-based)
+   * @param force If true, bypasses cooldown check (for manual reconnect)
+   * @param runStartCommand If true and connection fails, run the configured start command
+   */
+  async connect(
+    index: number,
+    force = false,
+    runStartCommand = false,
+  ): Promise<McpContext> {
+    if (index < 1 || index > this.browsers.length) {
+      throw new Error(
+        `Browser index ${index} is out of bounds. Valid range: 1-${this.browsers.length}`,
+      );
+    }
+
+    const entry = this.browsers[index - 1];
+
+    // Acquire mutex to prevent duplicate connection attempts
+    const guard = await entry.connectionMutex.acquire();
+    try {
+      // Double-check after acquiring mutex (unless forced)
+      if (!force && entry.state === 'connected' && entry.browser?.connected) {
+        return entry.context!;
+      }
+
+      // Dispose old context if exists
+      if (entry.context) {
+        entry.context.dispose();
+        entry.context = undefined;
+      }
+
+      // Attempt connection
+      entry.state = 'connecting';
+      entry.lastAttempt = Date.now();
+      logger(
+        `Connecting to browser ${index}: ${entry.config.browserURL || entry.config.wsEndpoint || 'launch'}`,
+      );
+
+      let browser: Browser;
+      try {
+        browser = await this.tryConnect(entry);
+      } catch (firstError) {
+        // If connection failed and we have a start command AND runStartCommand is true, try to start the browser
+        if (runStartCommand && entry.config.startCommand) {
+          logger(
+            `Browser ${index}: Initial connection failed, attempting to start browser...`,
+          );
+          this.spawnStartCommand(index, entry.config.startCommand);
+
+          // Wait for browser to start (try a few times with delays)
+          const maxRetries = 5;
+          const retryDelayMs = 2000;
+          let lastError = firstError;
+
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            await this.sleep(retryDelayMs);
+            logger(
+              `Browser ${index}: Retry attempt ${attempt}/${maxRetries}...`,
+            );
+            try {
+              browser = await this.tryConnect(entry);
+              logger(
+                `Browser ${index}: Connected successfully after starting browser`,
+              );
+              break;
+            } catch (retryError) {
+              lastError = retryError;
+              if (attempt === maxRetries) {
+                throw lastError;
+              }
+            }
+          }
+        } else {
+          throw firstError;
+        }
+      }
+
+      const context = await McpContext.from(
+        browser!,
+        logger,
+        entry.config.mcpContextOptions,
+      );
+
+      entry.browser = browser!;
+      entry.context = context;
+      entry.state = 'connected';
+      entry.lastError = undefined;
+
+      logger(`Browser ${index} connected successfully`);
+      return context;
+    } catch (error) {
+      entry.state = 'disconnected';
+      entry.lastError = error as Error;
+      logger(`Browser ${index} connection failed: ${(error as Error).message}`);
+      throw new Error(
+        `Failed to connect to browser ${index}: ${(error as Error).message}`,
+      );
+    } finally {
+      guard.dispose();
+    }
+  }
+
+  /**
+   * Connect if needed (respects cooldown), return context.
+   * @param index Browser index (1-based)
+   */
+  async ensureConnected(index: number): Promise<McpContext> {
+    if (index < 1 || index > this.browsers.length) {
+      throw new Error(
+        `Browser index ${index} is out of bounds. Valid range: 1-${this.browsers.length}`,
+      );
+    }
+
+    const entry = this.browsers[index - 1];
+
+    // Already connected and still alive
+    if (entry.state === 'connected' && entry.browser?.connected) {
+      return entry.context!;
+    }
+
+    // Check cooldown - if recently failed, don't auto-retry
+    if (entry.state === 'disconnected' && entry.lastAttempt) {
+      const elapsed = Date.now() - entry.lastAttempt;
+      if (elapsed < RETRY_COOLDOWN_MS) {
+        const waitSec = Math.ceil((RETRY_COOLDOWN_MS - elapsed) / 1000);
+        throw new Error(
+          `Browser ${index} connection failed recently. ` +
+            `Use reconnect_browser to retry now, or wait ${waitSec}s for auto-retry. ` +
+            `Last error: ${entry.lastError?.message}`,
+        );
+      }
+    }
+
+    // Attempt connection
+    return this.connect(index);
+  }
+
+  /**
+   * Start all connections without waiting.
+   */
+  connectAllInBackground(): void {
+    for (let i = 0; i < this.browsers.length; i++) {
+      const index = i + 1;
+      // Fire-and-forget connection
+      this.connect(index).catch(error => {
+        logger(
+          `Background connection to browser ${index} failed: ${error.message}`,
+        );
+      });
+    }
+  }
+
+  /**
+   * Check if cooldown period has passed for a browser.
+   */
+  canRetry(index: number): boolean {
+    if (index < 1 || index > this.browsers.length) {
+      return false;
+    }
+    const entry = this.browsers[index - 1];
+    if (entry.state !== 'disconnected' || !entry.lastAttempt) {
+      return true;
+    }
+    const elapsed = Date.now() - entry.lastAttempt;
+    return elapsed >= RETRY_COOLDOWN_MS;
   }
 
   /**
@@ -54,18 +327,20 @@ export class BrowserRegistry {
         `Browser index ${index} is out of bounds. Valid range: 1-${this.browsers.length}`,
       );
     }
-    return this.browsers[index - 1]; // Convert 1-based to 0-based array access
+    return this.browsers[index - 1];
   }
 
   /**
    * Get the context for a specific browser by index (1-based).
    * If there is only one browser, index MUST be undefined.
    * If there are multiple browsers, index MUST be specified.
+   * This method will attempt to connect if not already connected.
    * @throws Error if index is specified when only one browser exists
    * @throws Error if index is undefined when multiple browsers exist
    * @throws Error if index is out of bounds
+   * @throws Error if connection fails
    */
-  getContext(index?: number): McpContext {
+  async getContext(index?: number): Promise<McpContext> {
     // Single browser case: index must NOT be specified
     if (this.browsers.length === 1) {
       if (index !== undefined) {
@@ -74,7 +349,7 @@ export class BrowserRegistry {
             `Remove the browserIndex parameter from your tool call.`,
         );
       }
-      return this.browsers[0].context;
+      return this.ensureConnected(1);
     }
 
     // Multiple browsers case: index is required
@@ -85,9 +360,10 @@ export class BrowserRegistry {
       );
     }
 
+    const context = await this.ensureConnected(index);
     const entry = this.get(index);
     logger(`getContext(${index}) returning context for browser: ${entry.url}`);
-    return entry.context;
+    return context;
   }
 
   /**
@@ -125,8 +401,10 @@ export class BrowserRegistry {
     logger(`Disposing ${this.browsers.length} browsers`);
     for (const entry of this.browsers) {
       try {
-        entry.context.dispose();
-        if (entry.browser.connected) {
+        if (entry.context) {
+          entry.context.dispose();
+        }
+        if (entry.browser?.connected) {
           await entry.browser.close();
         }
       } catch (error) {

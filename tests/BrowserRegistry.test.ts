@@ -28,8 +28,16 @@ describe('BrowserRegistry', () => {
     const context1 = getMockContext();
     const context2 = getMockContext();
 
-    const index1 = registry.add(browser1, context1, 'http://localhost:9222');
-    const index2 = registry.add(browser2, context2, 'http://localhost:9223');
+    const index1 = registry.addConnectedBrowser(
+      browser1,
+      context1,
+      'http://localhost:9222',
+    );
+    const index2 = registry.addConnectedBrowser(
+      browser2,
+      context2,
+      'http://localhost:9223',
+    );
 
     assert.strictEqual(index1, 1);
     assert.strictEqual(index2, 2);
@@ -54,8 +62,8 @@ describe('BrowserRegistry', () => {
     const context1 = getMockContext();
     const context2 = getMockContext();
 
-    registry.add(browser1, context1, 'http://localhost:9222');
-    registry.add(browser2, context2, 'http://localhost:9223');
+    registry.addConnectedBrowser(browser1, context1, 'http://localhost:9222');
+    registry.addConnectedBrowser(browser2, context2, 'http://localhost:9223');
 
     const all = registry.getAll();
     assert.strictEqual(all.length, 2);
@@ -68,65 +76,65 @@ describe('BrowserRegistry', () => {
     const browser = getMockBrowser() as unknown as Browser;
     const context = getMockContext();
 
-    registry.add(browser, context, 'http://localhost:9222');
+    registry.addConnectedBrowser(browser, context, 'http://localhost:9222');
 
     assert.throws(() => registry.get(5), /Browser index 5 is out of bounds/);
 
     assert.throws(() => registry.get(0), /Browser index 0 is out of bounds/);
   });
 
-  it('single browser: getContext works without index', () => {
+  it('single browser: getContext works without index', async () => {
     const registry = new BrowserRegistry();
     const browser = getMockBrowser() as unknown as Browser;
     const context = getMockContext();
 
-    registry.add(browser, context, 'http://localhost:9222');
+    registry.addConnectedBrowser(browser, context, 'http://localhost:9222');
 
-    const retrievedContext = registry.getContext();
+    const retrievedContext = await registry.getContext();
     assert.strictEqual(retrievedContext, context);
   });
 
-  it('single browser: getContext throws error when index is specified', () => {
+  it('single browser: getContext throws error when index is specified', async () => {
     const registry = new BrowserRegistry();
     const browser = getMockBrowser() as unknown as Browser;
     const context = getMockContext();
 
-    registry.add(browser, context, 'http://localhost:9222');
+    registry.addConnectedBrowser(browser, context, 'http://localhost:9222');
 
-    assert.throws(
+    await assert.rejects(
       () => registry.getContext(1),
       /browserIndex parameter must NOT be specified when only one browser is connected/,
     );
   });
 
-  it('multiple browsers: getContext requires index', () => {
+  it('multiple browsers: getContext requires index', async () => {
     const registry = new BrowserRegistry();
     const browser1 = getMockBrowser() as unknown as Browser;
     const browser2 = getMockBrowser() as unknown as Browser;
     const context1 = getMockContext();
     const context2 = getMockContext();
 
-    registry.add(browser1, context1, 'http://localhost:9222');
-    registry.add(browser2, context2, 'http://localhost:9223');
+    registry.addConnectedBrowser(browser1, context1, 'http://localhost:9222');
+    registry.addConnectedBrowser(browser2, context2, 'http://localhost:9223');
 
-    assert.throws(
+    await assert.rejects(
       () => registry.getContext(),
       /browserIndex parameter is required when multiple browsers are connected/,
     );
   });
 
-  it('multiple browsers: getContext works with valid index', () => {
+  it('multiple browsers: getContext works with valid index', async () => {
     const registry = new BrowserRegistry();
     const browser1 = getMockBrowser() as unknown as Browser;
     const browser2 = getMockBrowser() as unknown as Browser;
     const context1 = getMockContext();
     const context2 = getMockContext();
 
-    registry.add(browser1, context1, 'http://localhost:9222');
-    registry.add(browser2, context2, 'http://localhost:9223');
+    registry.addConnectedBrowser(browser1, context1, 'http://localhost:9222');
+    registry.addConnectedBrowser(browser2, context2, 'http://localhost:9223');
 
-    const retrieved1 = registry.getContext(1);
-    const retrieved2 = registry.getContext(2);
+    const retrieved1 = await registry.getContext(1);
+    const retrieved2 = await registry.getContext(2);
 
     assert.strictEqual(retrieved1, context1);
     assert.strictEqual(retrieved2, context2);
@@ -138,7 +146,7 @@ describe('BrowserRegistry', () => {
 
     const browser = getMockBrowser() as unknown as Browser;
     const context = getMockContext();
-    registry.add(browser, context, 'http://localhost:9222');
+    registry.addConnectedBrowser(browser, context, 'http://localhost:9222');
 
     assert.strictEqual(registry.isEmpty(), false);
   });
@@ -149,12 +157,12 @@ describe('BrowserRegistry', () => {
 
     const browser1 = getMockBrowser() as unknown as Browser;
     const context1 = getMockContext();
-    registry.add(browser1, context1, 'http://localhost:9222');
+    registry.addConnectedBrowser(browser1, context1, 'http://localhost:9222');
     assert.strictEqual(registry.hasMultipleBrowsers(), false);
 
     const browser2 = getMockBrowser() as unknown as Browser;
     const context2 = getMockContext();
-    registry.add(browser2, context2, 'http://localhost:9223');
+    registry.addConnectedBrowser(browser2, context2, 'http://localhost:9223');
     assert.strictEqual(registry.hasMultipleBrowsers(), true);
   });
 
@@ -171,8 +179,8 @@ describe('BrowserRegistry', () => {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     (context2 as {dispose?: () => void}).dispose = () => {};
 
-    registry.add(browser1, context1, 'http://localhost:9222');
-    registry.add(browser2, context2, 'http://localhost:9223');
+    registry.addConnectedBrowser(browser1, context1, 'http://localhost:9222');
+    registry.addConnectedBrowser(browser2, context2, 'http://localhost:9223');
 
     assert.strictEqual(registry.count(), 2);
 

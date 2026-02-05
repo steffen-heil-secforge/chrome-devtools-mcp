@@ -314,3 +314,47 @@ export const pressKey = defineTool({
     response.includeSnapshot();
   },
 });
+
+export const pressKeys = defineTool({
+  name: 'press_keys',
+  description: `Press multiple keys or key combinations in sequence. Use this when you need to perform a series of key presses.`,
+  annotations: {
+    category: ToolCategory.INPUT,
+    readOnlyHint: false,
+  },
+  schema: {
+    ...browserIndexSchema,
+    keys: zod
+      .array(
+        zod
+          .string()
+          .describe(
+            'A key or a combination (e.g., "Enter", "Control+A", "Control+Shift+R"). Modifiers: Control, Shift, Alt, Meta',
+          ),
+      )
+      .describe('An array of keys or key combinations to press in sequence'),
+  },
+  handler: async (request, response, context) => {
+    const page = context.getSelectedPage();
+
+    for (const keyInput of request.params.keys) {
+      const tokens = parseKey(keyInput);
+      const [key, ...modifiers] = tokens;
+
+      await context.waitForEventsAfterAction(async () => {
+        for (const modifier of modifiers) {
+          await page.keyboard.down(modifier);
+        }
+        await page.keyboard.press(key);
+        for (const modifier of modifiers.toReversed()) {
+          await page.keyboard.up(modifier);
+        }
+      });
+    }
+
+    response.appendResponseLine(
+      `Successfully pressed keys: ${request.params.keys.join(', ')}`,
+    );
+    response.includeSnapshot();
+  },
+});

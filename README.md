@@ -312,7 +312,7 @@ If you run into any issues, checkout our [troubleshooting guide](./docs/troubles
 
 <!-- BEGIN AUTO GENERATED TOOLS -->
 
-- **Input automation** (8 tools)
+- **Input automation** (9 tools)
   - [`click`](docs/tool-reference.md#click)
   - [`drag`](docs/tool-reference.md#drag)
   - [`fill`](docs/tool-reference.md#fill)
@@ -320,13 +320,15 @@ If you run into any issues, checkout our [troubleshooting guide](./docs/troubles
   - [`handle_dialog`](docs/tool-reference.md#handle_dialog)
   - [`hover`](docs/tool-reference.md#hover)
   - [`press_key`](docs/tool-reference.md#press_key)
+  - [`press_keys`](docs/tool-reference.md#press_keys)
   - [`upload_file`](docs/tool-reference.md#upload_file)
-- **Navigation automation** (7 tools)
+- **Navigation automation** (8 tools)
   - [`close_page`](docs/tool-reference.md#close_page)
   - [`list_browsers`](docs/tool-reference.md#list_browsers)
   - [`list_pages`](docs/tool-reference.md#list_pages)
   - [`navigate_page`](docs/tool-reference.md#navigate_page)
   - [`new_page`](docs/tool-reference.md#new_page)
+  - [`reconnect_browser`](docs/tool-reference.md#reconnect_browser)
   - [`select_page`](docs/tool-reference.md#select_page)
   - [`wait_for`](docs/tool-reference.md#wait_for)
 - **Emulation** (2 tools)
@@ -355,7 +357,7 @@ The Chrome DevTools MCP server supports the following configuration option:
 <!-- BEGIN AUTO GENERATED OPTIONS -->
 
 - **`--browserUrl`, `-u`**
-  Connect to one or more running, debuggable Chrome instances (e.g. `http://127.0.0.1:9222`). Can be specified multiple times. For more details see: https://github.com/ChromeDevTools/chrome-devtools-mcp#connecting-to-a-running-chrome-instance.
+  Connect to one or more running, debuggable Chrome instances. Format: `url` or `url|start-command`. The start-command is executed via shell when a reconnect is requested (e.g. using `reconnect_browser`) and the browser is not reachable. Can be specified multiple times. For more details see: https://github.com/ChromeDevTools/chrome-devtools-mcp#connecting-to-a-running-chrome-instance.
   - **Type:** array
 
 - **`--wsEndpoint`, `-w`**
