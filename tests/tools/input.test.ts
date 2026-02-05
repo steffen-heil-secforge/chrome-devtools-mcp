@@ -19,6 +19,7 @@ import {
   uploadFile,
   pressKey,
   pressKeys,
+  clickAt,
 } from '../../src/tools/input.js';
 import {parseKey} from '../../src/utils/keyboard.js';
 import {serverHooks} from '../server.js';

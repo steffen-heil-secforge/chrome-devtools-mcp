@@ -70,7 +70,7 @@ interface McpContextOptions {
   // Whether all page-like targets are exposed as pages.
   experimentalIncludeAllPages?: boolean;
   // Whether CrUX data should be fetched.
-  performanceCrux: boolean;
+  performanceCrux?: boolean;
 }
 
 const DEFAULT_TIMEOUT = 5_000;
@@ -373,7 +373,7 @@ export class McpContext implements Context {
   }
 
   isCruxEnabled(): boolean {
-    return this.#options.performanceCrux;
+    return this.#options.performanceCrux ?? false;
   }
 
   getDialog(): Dialog | undefined {

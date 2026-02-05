@@ -125,7 +125,7 @@ function registerBrowserConfigs(): void {
         userDataDir: args.userDataDir,
         logFile,
         viewport: args.viewport,
-        args: extraArgs,
+        chromeArgs: extraArgs,
         acceptInsecureCerts: args.acceptInsecureCerts,
         devtools,
       },

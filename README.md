@@ -400,28 +400,18 @@ The Chrome DevTools MCP server supports the following configuration option:
 
 <!-- BEGIN AUTO GENERATED OPTIONS -->
 
-<<<<<<< HEAD
 - **`--autoConnect`/ `--auto-connect`**
   If specified, automatically connects to a browser (Chrome 144+) running in the user data directory identified by the channel param. Requires the remoted debugging server to be started in the Chrome instance via chrome://inspect/#remote-debugging.
   - **Type:** boolean
   - **Default:** `false`
 
 - **`--browserUrl`/ `--browser-url`, `-u`**
-  Connect to a running, debuggable Chrome instance (e.g. `http://127.0.0.1:9222`). For more details see: https://github.com/ChromeDevTools/chrome-devtools-mcp#connecting-to-a-running-chrome-instance.
-  - **Type:** string
-
-- **`--wsEndpoint`/ `--ws-endpoint`, `-w`**
-  WebSocket endpoint to connect to a running Chrome instance (e.g., ws://127.0.0.1:9222/devtools/browser/<id>). Alternative to --browserUrl.
-  - **Type:** string
-=======
-- **`--browserUrl`, `-u`**
   Connect to one or more running, debuggable Chrome instances. Format: `url` or `url|start-command`. The start-command is executed via shell when a reconnect is requested (e.g. using `reconnect_browser`) and the browser is not reachable. Can be specified multiple times. For more details see: https://github.com/ChromeDevTools/chrome-devtools-mcp#connecting-to-a-running-chrome-instance.
   - **Type:** array
 
-- **`--wsEndpoint`, `-w`**
+- **`--wsEndpoint`/ `--ws-endpoint`, `-w`**
   WebSocket endpoint to connect to one or more running Chrome instances (e.g., ws://127.0.0.1:9222/devtools/browser/<id>). Can be specified multiple times. Alternative to --browserUrl.
   - **Type:** array
->>>>>>> c226f29 (feat: add multi-browser support for parallel browser management)
 
 - **`--wsHeaders`/ `--ws-headers`**
   Custom headers for WebSocket connection in JSON format (e.g., '{"Authorization":"Bearer token"}'). Only works with --wsEndpoint.

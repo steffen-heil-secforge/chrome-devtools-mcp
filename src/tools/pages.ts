@@ -71,7 +71,9 @@ export const closePage = defineTool({
     ...browserIndexSchema,
     pageIdx: zod
       .number()
-      .describe('The index of the page to close. Call list_pages to list pages.'),
+      .describe(
+        'The index of the page to close. Call list_pages to list pages.',
+      ),
   },
   handler: async (request, response, context) => {
     try {
@@ -371,14 +373,14 @@ export const getTabId = defineTool({
     conditions: ['experimentalInteropTools'],
   },
   schema: {
-    pageId: zod
+    pageIdx: zod
       .number()
       .describe(
-        `The ID of the page to get the tab ID for. Call ${listPages.name} to get available pages.`,
+        `The index of the page to get the tab ID for. Call ${listPages.name} to list pages.`,
       ),
   },
   handler: async (request, response, context) => {
-    const page = context.getPageById(request.params.pageId);
+    const page = context.getPageById(request.params.pageIdx);
     // @ts-expect-error _tabId is internal.
     const tabId = page._tabId;
     response.setTabId(tabId);

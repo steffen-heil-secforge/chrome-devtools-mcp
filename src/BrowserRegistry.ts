@@ -25,6 +25,7 @@ export type ConnectionState =
 export interface McpContextOptions {
   experimentalDevToolsDebugging: boolean;
   experimentalIncludeAllPages?: boolean;
+  performanceCrux?: boolean;
 }
 
 export interface BrowserConfig {
