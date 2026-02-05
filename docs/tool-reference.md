@@ -2,7 +2,7 @@
 
 # Chrome DevTools MCP Tool Reference
 
-- **[Input automation](#input-automation)** (8 tools)
+- **[Input automation](#input-automation)** (9 tools)
   - [`click`](#click)
   - [`drag`](#drag)
   - [`fill`](#fill)
@@ -10,12 +10,15 @@
   - [`handle_dialog`](#handle_dialog)
   - [`hover`](#hover)
   - [`press_key`](#press_key)
+  - [`press_keys`](#press_keys)
   - [`upload_file`](#upload_file)
-- **[Navigation automation](#navigation-automation)** (6 tools)
+- **[Navigation automation](#navigation-automation)** (8 tools)
   - [`close_page`](#close_page)
+  - [`list_browsers`](#list_browsers)
   - [`list_pages`](#list_pages)
   - [`navigate_page`](#navigate_page)
   - [`new_page`](#new_page)
+  - [`reconnect_browser`](#reconnect_browser)
   - [`select_page`](#select_page)
   - [`wait_for`](#wait_for)
 - **[Emulation](#emulation)** (2 tools)
@@ -44,6 +47,7 @@
 **Parameters:**
 
 - **uid** (string) **(required)**: The uid of an element on the page from the page content snapshot
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **dblClick** (boolean) _(optional)_: Set to true for double clicks. Default is false.
 - **includeSnapshot** (boolean) _(optional)_: Whether to include a snapshot in the response. Default is false.
 
@@ -57,6 +61,7 @@
 
 - **from_uid** (string) **(required)**: The uid of the element to [`drag`](#drag)
 - **to_uid** (string) **(required)**: The uid of the element to drop into
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **includeSnapshot** (boolean) _(optional)_: Whether to include a snapshot in the response. Default is false.
 
 ---
@@ -69,6 +74,7 @@
 
 - **uid** (string) **(required)**: The uid of an element on the page from the page content snapshot
 - **value** (string) **(required)**: The value to [`fill`](#fill) in
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **includeSnapshot** (boolean) _(optional)_: Whether to include a snapshot in the response. Default is false.
 
 ---
@@ -80,6 +86,7 @@
 **Parameters:**
 
 - **elements** (array) **(required)**: Elements from snapshot to [`fill`](#fill) out.
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **includeSnapshot** (boolean) _(optional)_: Whether to include a snapshot in the response. Default is false.
 
 ---
@@ -91,6 +98,7 @@
 **Parameters:**
 
 - **action** (enum: "accept", "dismiss") **(required)**: Whether to dismiss or accept the dialog
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **promptText** (string) _(optional)_: Optional prompt text to enter into the dialog.
 
 ---
@@ -102,6 +110,7 @@
 **Parameters:**
 
 - **uid** (string) **(required)**: The uid of an element on the page from the page content snapshot
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **includeSnapshot** (boolean) _(optional)_: Whether to include a snapshot in the response. Default is false.
 
 ---
@@ -113,7 +122,19 @@
 **Parameters:**
 
 - **key** (string) **(required)**: A key or a combination (e.g., "Enter", "Control+A", "Control++", "Control+Shift+R"). Modifiers: Control, Shift, Alt, Meta
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **includeSnapshot** (boolean) _(optional)_: Whether to include a snapshot in the response. Default is false.
+
+---
+
+### `press_keys`
+
+**Description:** Press multiple keys or key combinations in sequence. Use this when you need to perform a series of key presses.
+
+**Parameters:**
+
+- **keys** (array) **(required)**: An array of keys or key combinations to press in sequence
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 
 ---
 
@@ -125,6 +146,7 @@
 
 - **filePath** (string) **(required)**: The local path of the file to upload
 - **uid** (string) **(required)**: The uid of the file input element or an element that will open file chooser on the page from the page content snapshot
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **includeSnapshot** (boolean) _(optional)_: Whether to include a snapshot in the response. Default is false.
 
 ---
@@ -133,11 +155,20 @@
 
 ### `close_page`
 
-**Description:** Closes the page by its index. The last open page cannot be closed.
+**Description:** Closes the page by its ID. The last open page cannot be closed.
 
 **Parameters:**
 
 - **pageId** (number) **(required)**: The ID of the page to close. Call [`list_pages`](#list_pages) to list pages.
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
+
+---
+
+### `list_browsers`
+
+**Description:** Get a list of all registered browsers and their connection states. Use this to see which browsers are available, their indices, and whether they are connected. When multiple browsers are registered, you must use the browserIndex parameter in tools to specify which browser to target.
+
+**Parameters:** None
 
 ---
 
@@ -145,7 +176,9 @@
 
 **Description:** Get a list of pages open in the browser.
 
-**Parameters:** None
+**Parameters:**
+
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 
 ---
 
@@ -155,6 +188,7 @@
 
 **Parameters:**
 
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **handleBeforeUnload** (enum: "accept", "decline") _(optional)_: Whether to auto accept or beforeunload dialogs triggered by this navigation. Default is accept.
 - **ignoreCache** (boolean) _(optional)_: Whether to ignore cache on reload.
 - **initScript** (string) _(optional)_: A JavaScript script to be executed on each new document before any other scripts for the next navigation.
@@ -172,7 +206,18 @@
 
 - **url** (string) **(required)**: URL to load in a new page.
 - **background** (boolean) _(optional)_: Whether to open the page in the background without bringing it to the front. Default is false (foreground).
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **timeout** (integer) _(optional)_: Maximum wait time in milliseconds. If set to 0, the default timeout will be used.
+
+---
+
+### `reconnect_browser`
+
+**Description:** Manually reconnect to a disconnected browser. Use this when a browser connection was lost or failed. In single-browser mode, no parameter needed. In multi-browser mode, specify browserIndex.
+
+**Parameters:**
+
+- **browserIndex** (integer) _(optional)_: Index of the browser to reconnect (1-based). Required in multi-browser mode.
 
 ---
 
@@ -184,6 +229,7 @@
 
 - **pageId** (number) **(required)**: The ID of the page to select. Call [`list_pages`](#list_pages) to get available pages.
 - **bringToFront** (boolean) _(optional)_: Whether to focus the page and bring it to the top.
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 
 ---
 
@@ -194,6 +240,7 @@
 **Parameters:**
 
 - **text** (string) **(required)**: Text to appear on the page
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **timeout** (integer) _(optional)_: Maximum wait time in milliseconds. If set to 0, the default timeout will be used.
 
 ---
@@ -206,6 +253,7 @@
 
 **Parameters:**
 
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **colorScheme** (enum: "dark", "light", "auto") _(optional)_: [`Emulate`](#emulate) the dark or the light mode. Set to "auto" to reset to the default.
 - **cpuThrottlingRate** (number) _(optional)_: Represents the CPU slowdown factor. Set the rate to 1 to disable throttling. If omitted, throttling remains unchanged.
 - **geolocation** (unknown) _(optional)_: Geolocation to [`emulate`](#emulate). Set to null to clear the geolocation override.
@@ -223,6 +271,7 @@
 
 - **height** (number) **(required)**: Page height
 - **width** (number) **(required)**: Page width
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 
 ---
 
@@ -236,6 +285,7 @@
 
 - **insightName** (string) **(required)**: The name of the Insight you want more information on. For example: "DocumentLatency" or "LCPBreakdown"
 - **insightSetId** (string) **(required)**: The id for the specific insight set. Only use the ids given in the "Available insight sets" list.
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 
 ---
 
@@ -247,6 +297,7 @@
 
 - **autoStop** (boolean) **(required)**: Determines if the trace recording should be automatically stopped.
 - **reload** (boolean) **(required)**: Determines if, once tracing has started, the current selected page should be automatically reloaded. Navigate the page to the right URL using the [`navigate_page`](#navigate_page) tool BEFORE starting the trace if reload or autoStop is set to true.
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **filePath** (string) _(optional)_: The absolute file path, or a file path relative to the current working directory, to save the raw trace data. For example, trace.json.gz (compressed) or trace.json (uncompressed).
 
 ---
@@ -257,6 +308,7 @@
 
 **Parameters:**
 
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **filePath** (string) _(optional)_: The absolute file path, or a file path relative to the current working directory, to save the raw trace data. For example, trace.json.gz (compressed) or trace.json (uncompressed).
 
 ---
@@ -269,6 +321,7 @@
 
 **Parameters:**
 
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **reqid** (number) _(optional)_: The reqid of the network request. If omitted returns the currently selected request in the DevTools Network panel.
 - **requestFilePath** (string) _(optional)_: The absolute or relative path to save the request body to. If omitted, the body is returned inline.
 - **responseFilePath** (string) _(optional)_: The absolute or relative path to save the response body to. If omitted, the body is returned inline.
@@ -281,6 +334,7 @@
 
 **Parameters:**
 
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **includePreservedRequests** (boolean) _(optional)_: Set to true to return the preserved requests over the last 3 navigations.
 - **pageIdx** (integer) _(optional)_: Page number to return (0-based). When omitted, returns the first page.
 - **pageSize** (integer) _(optional)_: Maximum number of requests to return. When omitted, returns all requests.
@@ -308,6 +362,7 @@ so returned values have to be JSON-serializable.
 }`
 
 - **args** (array) _(optional)_: An optional list of arguments to pass to the function.
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 
 ---
 
@@ -318,6 +373,7 @@ so returned values have to be JSON-serializable.
 **Parameters:**
 
 - **msgid** (number) **(required)**: The msgid of a console message on the page from the listed console messages
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 
 ---
 
@@ -327,6 +383,7 @@ so returned values have to be JSON-serializable.
 
 **Parameters:**
 
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **includePreservedMessages** (boolean) _(optional)_: Set to true to return the preserved messages over the last 3 navigations.
 - **pageIdx** (integer) _(optional)_: Page number to return (0-based). When omitted, returns the first page.
 - **pageSize** (integer) _(optional)_: Maximum number of messages to return. When omitted, returns all requests.
@@ -340,6 +397,7 @@ so returned values have to be JSON-serializable.
 
 **Parameters:**
 
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **filePath** (string) _(optional)_: The absolute path, or a path relative to the current working directory, to save the screenshot to instead of attaching it to the response.
 - **format** (enum: "png", "jpeg", "webp") _(optional)_: Type of format to save the screenshot as. Default is "png"
 - **fullPage** (boolean) _(optional)_: If set to true takes a screenshot of the full page instead of the currently visible viewport. Incompatible with uid.
@@ -356,6 +414,7 @@ in the DevTools Elements panel (if any).
 
 **Parameters:**
 
+- **browserIndex** (integer) _(optional)_: Index of the browser to use (1-based). When multiple browsers are configured via --browserUrl or --wsEndpoint, this parameter is REQUIRED to specify which browser to target. When only one browser is configured, this parameter must NOT be specified. Use [`list_browsers`](#list_browsers) to see available browser indices.
 - **filePath** (string) _(optional)_: The absolute path, or a path relative to the current working directory, to save the snapshot to instead of attaching it to the response.
 - **verbose** (boolean) _(optional)_: Whether to include all possible information available in the full a11y tree. Default is false.
 

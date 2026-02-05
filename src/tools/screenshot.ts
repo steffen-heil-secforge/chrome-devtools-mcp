@@ -8,7 +8,7 @@ import {zod} from '../third_party/index.js';
 import type {ElementHandle, Page} from '../third_party/index.js';
 
 import {ToolCategory} from './categories.js';
-import {defineTool} from './ToolDefinition.js';
+import {defineTool, browserIndexSchema} from './ToolDefinition.js';
 
 export const screenshot = defineTool({
   name: 'take_screenshot',
@@ -19,6 +19,7 @@ export const screenshot = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     format: zod
       .enum(['png', 'jpeg', 'webp'])
       .default('png')

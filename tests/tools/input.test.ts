@@ -18,6 +18,7 @@ import {
   fillForm,
   uploadFile,
   pressKey,
+  pressKeys,
   clickAt,
 } from '../../src/tools/input.js';
 import {parseKey} from '../../src/utils/keyboard.js';
@@ -747,6 +748,81 @@ describe('input', () => {
           'uC',
           'uShift',
           'uControl',
+        ]);
+      });
+    });
+  });
+
+  describe('press_keys', () => {
+    it('processes multiple keys in sequence', async () => {
+      await withMcpContext(async (response, context) => {
+        const page = context.getSelectedPage();
+        await page.setContent(
+          html`<script>
+            logs = [];
+            document.addEventListener('keydown', e => logs.push('d' + e.key));
+            document.addEventListener('keyup', e => logs.push('u' + e.key));
+          </script>`,
+        );
+        await context.createTextSnapshot();
+
+        await pressKeys.handler(
+          {
+            params: {
+              keys: ['Control+A', 'Control+C'],
+            },
+          },
+          response,
+          context,
+        );
+
+        assert.deepStrictEqual(await page.evaluate('logs'), [
+          'dControl',
+          'dA',
+          'uA',
+          'uControl',
+          'dControl',
+          'dC',
+          'uC',
+          'uControl',
+        ]);
+        assert.strictEqual(
+          response.responseLines[0],
+          'Successfully pressed keys: Control+A, Control+C',
+        );
+        assert.ok(response.includeSnapshot);
+      });
+    });
+
+    it('processes single keys without modifiers', async () => {
+      await withMcpContext(async (response, context) => {
+        const page = context.getSelectedPage();
+        await page.setContent(
+          html`<script>
+            logs = [];
+            document.addEventListener('keydown', e => logs.push('d' + e.key));
+            document.addEventListener('keyup', e => logs.push('u' + e.key));
+          </script>`,
+        );
+        await context.createTextSnapshot();
+
+        await pressKeys.handler(
+          {
+            params: {
+              keys: ['Enter', 'Tab', 'Escape'],
+            },
+          },
+          response,
+          context,
+        );
+
+        assert.deepStrictEqual(await page.evaluate('logs'), [
+          'dEnter',
+          'uEnter',
+          'dTab',
+          'uTab',
+          'dEscape',
+          'uEscape',
         ]);
       });
     });

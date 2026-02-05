@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import * as browserManagementTools from './browser-management.js';
 import * as consoleTools from './console.js';
 import * as emulationTools from './emulation.js';
 import * as extensionTools from './extensions.js';
@@ -17,6 +18,7 @@ import * as snapshotTools from './snapshot.js';
 import type {ToolDefinition} from './ToolDefinition.js';
 
 const tools = [
+  ...Object.values(browserManagementTools),
   ...Object.values(consoleTools),
   ...Object.values(emulationTools),
   ...Object.values(extensionTools),

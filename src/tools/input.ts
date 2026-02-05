@@ -11,7 +11,7 @@ import type {ElementHandle} from '../third_party/index.js';
 import {parseKey} from '../utils/keyboard.js';
 
 import {ToolCategory} from './categories.js';
-import {defineTool} from './ToolDefinition.js';
+import {defineTool, browserIndexSchema} from './ToolDefinition.js';
 
 const dblClickSchema = zod
   .boolean()
@@ -41,6 +41,7 @@ export const click = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     uid: zod
       .string()
       .describe(
@@ -114,6 +115,7 @@ export const hover = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     uid: zod
       .string()
       .describe(
@@ -210,6 +212,7 @@ export const fill = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     uid: zod
       .string()
       .describe(
@@ -241,6 +244,7 @@ export const drag = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     from_uid: zod.string().describe('The uid of the element to drag'),
     to_uid: zod.string().describe('The uid of the element to drop into'),
     includeSnapshot: includeSnapshotSchema,
@@ -273,6 +277,7 @@ export const fillForm = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     elements: zod
       .array(
         zod.object({
@@ -308,6 +313,7 @@ export const uploadFile = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     uid: zod
       .string()
       .describe(
@@ -359,6 +365,7 @@ export const pressKey = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     key: zod
       .string()
       .describe(
@@ -387,5 +394,49 @@ export const pressKey = defineTool({
     if (request.params.includeSnapshot) {
       response.includeSnapshot();
     }
+  },
+});
+
+export const pressKeys = defineTool({
+  name: 'press_keys',
+  description: `Press multiple keys or key combinations in sequence. Use this when you need to perform a series of key presses.`,
+  annotations: {
+    category: ToolCategory.INPUT,
+    readOnlyHint: false,
+  },
+  schema: {
+    ...browserIndexSchema,
+    keys: zod
+      .array(
+        zod
+          .string()
+          .describe(
+            'A key or a combination (e.g., "Enter", "Control+A", "Control+Shift+R"). Modifiers: Control, Shift, Alt, Meta',
+          ),
+      )
+      .describe('An array of keys or key combinations to press in sequence'),
+  },
+  handler: async (request, response, context) => {
+    const page = context.getSelectedPage();
+
+    for (const keyInput of request.params.keys) {
+      const tokens = parseKey(keyInput);
+      const [key, ...modifiers] = tokens;
+
+      await context.waitForEventsAfterAction(async () => {
+        for (const modifier of modifiers) {
+          await page.keyboard.down(modifier);
+        }
+        await page.keyboard.press(key);
+        for (const modifier of modifiers.toReversed()) {
+          await page.keyboard.up(modifier);
+        }
+      });
+    }
+
+    response.appendResponseLine(
+      `Successfully pressed keys: ${request.params.keys.join(', ')}`,
+    );
+    response.includeSnapshot();
   },
 });

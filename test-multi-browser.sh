@@ -1,0 +1,41 @@
+#!/bin/bash
+# Quick test script for multi-browser feature
+
+echo "Building the project..."
+npm run build
+
+echo ""
+echo "==================================================================="
+echo "Multi-Browser Testing Guide"
+echo "==================================================================="
+echo ""
+echo "Since you're in WSL, you need Chrome running with remote debugging."
+echo ""
+echo "OPTION 1: Start Chrome on Windows (recommended for WSL)"
+echo "-------------------------------------------------------------------"
+echo "In PowerShell or CMD on Windows, run:"
+echo '  "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir=C:\temp\chrome1'
+echo '  "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9223 --user-data-dir=C:\temp\chrome2'
+echo ""
+echo "Then in WSL, connect to both:"
+echo "  node build/src/index.js --browserUrl=http://127.0.0.1:9222 --browserUrl=http://127.0.0.1:9223"
+echo ""
+echo "OPTION 2: Start Chrome on Linux (if Chrome is installed)"
+echo "-------------------------------------------------------------------"
+echo "  google-chrome --remote-debugging-port=9222 --user-data-dir=/tmp/chrome1 &"
+echo "  google-chrome --remote-debugging-port=9223 --user-data-dir=/tmp/chrome2 &"
+echo "  node build/src/index.js --browserUrl=http://127.0.0.1:9222 --browserUrl=http://127.0.0.1:9223"
+echo ""
+echo "OPTION 3: Single browser test (backward compatibility)"
+echo "-------------------------------------------------------------------"
+echo "  Start one Chrome instance on port 9222, then:"
+echo "  node build/src/index.js --browserUrl=http://127.0.0.1:9222"
+echo ""
+echo "USING THE MULTI-BROWSER FEATURE:"
+echo "-------------------------------------------------------------------"
+echo "1. Call list_browsers to see available browsers (indices 1, 2, ...)"
+echo "2. Specify browserIndex in all tool calls:"
+echo "   - take_snapshot with browserIndex: 1"
+echo "   - navigate_page with browserIndex: 2, etc."
+echo ""
+echo "==================================================================="

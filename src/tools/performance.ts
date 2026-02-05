@@ -17,7 +17,7 @@ import {
 
 import {ToolCategory} from './categories.js';
 import type {Context, Response} from './ToolDefinition.js';
-import {defineTool} from './ToolDefinition.js';
+import {defineTool, browserIndexSchema} from './ToolDefinition.js';
 
 const filePathSchema = zod
   .string()
@@ -34,6 +34,7 @@ export const startTrace = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     reload: zod
       .boolean()
       .describe(
@@ -121,6 +122,7 @@ export const stopTrace = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     filePath: filePathSchema,
   },
   handler: async (request, response, context) => {
@@ -146,6 +148,7 @@ export const analyzeInsight = defineTool({
     readOnlyHint: true,
   },
   schema: {
+    ...browserIndexSchema,
     insightSetId: zod
       .string()
       .describe(

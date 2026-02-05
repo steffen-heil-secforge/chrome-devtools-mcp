@@ -8,7 +8,7 @@ import {zod} from '../third_party/index.js';
 import type {ResourceType} from '../third_party/index.js';
 
 import {ToolCategory} from './categories.js';
-import {defineTool} from './ToolDefinition.js';
+import {defineTool, browserIndexSchema} from './ToolDefinition.js';
 
 const FILTERABLE_RESOURCE_TYPES: readonly [ResourceType, ...ResourceType[]] = [
   'document',
@@ -40,6 +40,7 @@ export const listNetworkRequests = defineTool({
     readOnlyHint: true,
   },
   schema: {
+    ...browserIndexSchema,
     pageSize: zod
       .number()
       .int()
@@ -94,6 +95,7 @@ export const getNetworkRequest = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     reqid: zod
       .number()
       .optional()

@@ -17,6 +17,7 @@ import type {
 } from './third_party/index.js';
 import {puppeteer} from './third_party/index.js';
 
+// Legacy global browser reference - kept for backward compatibility with ensureBrowserLaunched
 let browser: Browser | undefined;
 
 function makeTargetFilter() {
@@ -51,11 +52,9 @@ export async function ensureBrowserConnected(options: {
   channel?: Channel;
   userDataDir?: string;
 }) {
+  // Always create a new connection for multi-browser support
+  // Do NOT reuse the global browser variable
   const {channel} = options;
-  if (browser?.connected) {
-    return browser;
-  }
-
   const connectOptions: Parameters<typeof puppeteer.connect>[0] = {
     targetFilter: makeTargetFilter(),
     defaultViewport: null,
@@ -117,7 +116,9 @@ export async function ensureBrowserConnected(options: {
 
   logger('Connecting Puppeteer to ', JSON.stringify(connectOptions));
   try {
-    browser = await puppeteer.connect(connectOptions);
+    const newBrowser = await puppeteer.connect(connectOptions);
+    logger('Connected Puppeteer');
+    return newBrowser;
   } catch (err) {
     throw new Error(
       'Could not connect to Chrome. Check if Chrome is running and remote debugging is enabled by going to chrome://inspect/#remote-debugging.',
@@ -126,11 +127,9 @@ export async function ensureBrowserConnected(options: {
       },
     );
   }
-  logger('Connected Puppeteer');
-  return browser;
 }
 
-interface McpLaunchOptions {
+export interface McpLaunchOptions {
   acceptInsecureCerts?: boolean;
   executablePath?: string;
   channel?: Channel;

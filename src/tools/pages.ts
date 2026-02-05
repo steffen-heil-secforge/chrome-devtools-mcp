@@ -9,7 +9,12 @@ import type {Dialog} from '../third_party/index.js';
 import {zod} from '../third_party/index.js';
 
 import {ToolCategory} from './categories.js';
-import {CLOSE_PAGE_ERROR, defineTool, timeoutSchema} from './ToolDefinition.js';
+import {
+  CLOSE_PAGE_ERROR,
+  defineTool,
+  timeoutSchema,
+  browserIndexSchema,
+} from './ToolDefinition.js';
 
 export const listPages = defineTool({
   name: 'list_pages',
@@ -18,7 +23,9 @@ export const listPages = defineTool({
     category: ToolCategory.NAVIGATION,
     readOnlyHint: true,
   },
-  schema: {},
+  schema: {
+    ...browserIndexSchema,
+  },
   handler: async (_request, response) => {
     response.setIncludePages(true);
   },
@@ -32,6 +39,7 @@ export const selectPage = defineTool({
     readOnlyHint: true,
   },
   schema: {
+    ...browserIndexSchema,
     pageId: zod
       .number()
       .describe(
@@ -54,12 +62,13 @@ export const selectPage = defineTool({
 
 export const closePage = defineTool({
   name: 'close_page',
-  description: `Closes the page by its index. The last open page cannot be closed.`,
+  description: `Closes the page by its ID. The last open page cannot be closed.`,
   annotations: {
     category: ToolCategory.NAVIGATION,
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     pageId: zod
       .number()
       .describe('The ID of the page to close. Call list_pages to list pages.'),
@@ -68,8 +77,12 @@ export const closePage = defineTool({
     try {
       await context.closePage(request.params.pageId);
     } catch (err) {
-      if (err.message === CLOSE_PAGE_ERROR) {
-        response.appendResponseLine(err.message);
+      const message =
+        err && typeof err === 'object' && 'message' in err
+          ? String(err.message)
+          : String(err);
+      if (message === CLOSE_PAGE_ERROR) {
+        response.appendResponseLine(message);
       } else {
         throw err;
       }
@@ -86,6 +99,7 @@ export const newPage = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     url: zod.string().describe('URL to load in a new page.'),
     background: zod
       .boolean()
@@ -119,6 +133,7 @@ export const navigatePage = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     type: zod
       .enum(['url', 'back', 'forward', 'reload'])
       .optional()
@@ -268,6 +283,7 @@ export const resizePage = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     width: zod.number().describe('Page width'),
     height: zod.number().describe('Page height'),
   },
@@ -307,6 +323,7 @@ export const handleDialog = defineTool({
     readOnlyHint: false,
   },
   schema: {
+    ...browserIndexSchema,
     action: zod
       .enum(['accept', 'dismiss'])
       .describe('Whether to dismiss or accept the dialog'),

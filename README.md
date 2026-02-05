@@ -16,9 +16,12 @@ Chrome DevTools for reliable automation, in-depth debugging, and performance ana
   traces and extract actionable performance insights.
 - **Advanced browser debugging**: Analyze network requests, take screenshots and
   check browser console messages (with source-mapped stack traces).
-- **Reliable automation**. Uses
+- **Reliable automation**: Uses
   [puppeteer](https://github.com/puppeteer/puppeteer) to automate actions in
   Chrome and automatically wait for action results.
+- **Multi-browser support**: Connect to multiple Chrome instances simultaneously
+  and switch between them for parallel testing, cross-browser debugging, or
+  managing different user sessions.
 
 ## Disclaimers
 
@@ -32,6 +35,10 @@ experience data. This helps provide a holistic performance picture by
 presenting field data alongside lab data. This data is collected by the [Chrome
 User Experience Report (CrUX)](https://developer.chrome.com/docs/crux). To disable
 this, run with the `--no-performance-crux` flag.
+
+### **Browser start commands**
+
+When using the `--browserUrl` parameter with a start command (e.g., `--browserUrl "http://localhost:9222|chrome --remote-debugging-port=9222"`), the command after the `|` separator will be executed via shell when reconnection is triggered. **This command runs with the same privileges as the MCP server process.** Only configure start commands you trust, as they can perform any operation the server process has permission to execute.
 
 ## **Usage statistics**
 
@@ -353,7 +360,7 @@ If you run into any issues, checkout our [troubleshooting guide](./docs/troubles
 
 <!-- BEGIN AUTO GENERATED TOOLS -->
 
-- **Input automation** (8 tools)
+- **Input automation** (9 tools)
   - [`click`](docs/tool-reference.md#click)
   - [`drag`](docs/tool-reference.md#drag)
   - [`fill`](docs/tool-reference.md#fill)
@@ -361,12 +368,15 @@ If you run into any issues, checkout our [troubleshooting guide](./docs/troubles
   - [`handle_dialog`](docs/tool-reference.md#handle_dialog)
   - [`hover`](docs/tool-reference.md#hover)
   - [`press_key`](docs/tool-reference.md#press_key)
+  - [`press_keys`](docs/tool-reference.md#press_keys)
   - [`upload_file`](docs/tool-reference.md#upload_file)
-- **Navigation automation** (6 tools)
+- **Navigation automation** (8 tools)
   - [`close_page`](docs/tool-reference.md#close_page)
+  - [`list_browsers`](docs/tool-reference.md#list_browsers)
   - [`list_pages`](docs/tool-reference.md#list_pages)
   - [`navigate_page`](docs/tool-reference.md#navigate_page)
   - [`new_page`](docs/tool-reference.md#new_page)
+  - [`reconnect_browser`](docs/tool-reference.md#reconnect_browser)
   - [`select_page`](docs/tool-reference.md#select_page)
   - [`wait_for`](docs/tool-reference.md#wait_for)
 - **Emulation** (2 tools)
@@ -400,12 +410,12 @@ The Chrome DevTools MCP server supports the following configuration option:
   - **Default:** `false`
 
 - **`--browserUrl`/ `--browser-url`, `-u`**
-  Connect to a running, debuggable Chrome instance (e.g. `http://127.0.0.1:9222`). For more details see: https://github.com/ChromeDevTools/chrome-devtools-mcp#connecting-to-a-running-chrome-instance.
-  - **Type:** string
+  Connect to one or more running, debuggable Chrome instances. Format: `url` or `url|start-command`. The start-command is executed via shell when a reconnect is requested (e.g. using `reconnect_browser`) and the browser is not reachable. Can be specified multiple times. For more details see: https://github.com/ChromeDevTools/chrome-devtools-mcp#connecting-to-a-running-chrome-instance.
+  - **Type:** array
 
 - **`--wsEndpoint`/ `--ws-endpoint`, `-w`**
-  WebSocket endpoint to connect to a running Chrome instance (e.g., ws://127.0.0.1:9222/devtools/browser/<id>). Alternative to --browserUrl.
-  - **Type:** string
+  WebSocket endpoint to connect to one or more running Chrome instances (e.g., ws://127.0.0.1:9222/devtools/browser/<id>). Can be specified multiple times. Alternative to --browserUrl.
+  - **Type:** array
 
 - **`--wsHeaders`/ `--ws-headers`**
   Custom headers for WebSocket connection in JSON format (e.g., '{"Authorization":"Bearer token"}'). Only works with --wsEndpoint.
@@ -523,6 +533,40 @@ You can connect directly to a Chrome WebSocket endpoint and include custom heade
 
 To get the WebSocket endpoint from a running Chrome instance, visit `http://127.0.0.1:9222/json/version` and look for the `webSocketDebuggerUrl` field.
 
+### Connecting to multiple browsers
+
+The Chrome DevTools MCP server supports connecting to multiple Chrome instances simultaneously. This is useful for parallel testing, cross-browser debugging, or managing different user sessions.
+
+To connect to multiple browsers, specify `--browserUrl` or `--wsEndpoint` multiple times:
+
+```json
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "chrome-devtools-mcp@latest",
+        "--browserUrl=http://127.0.0.1:9222",
+        "--browserUrl=http://127.0.0.1:9223"
+      ]
+    }
+  }
+}
+```
+
+When multiple browsers are connected, all tools require a `browserIndex` parameter to specify which browser to target. Use the `list_browsers` tool to see available browsers and their indices.
+
+**Single browser mode** (backward compatible):
+
+- When only one browser is configured, `browserIndex` must NOT be specified
+- All tools work exactly as before
+
+**Multiple browser mode**:
+
+- When multiple browsers are configured, `browserIndex` is REQUIRED for all tool calls
+- Browser indices are zero-based (0, 1, 2, ...)
+- Use `list_browsers` to see which browsers are available
+
 You can also run `npx chrome-devtools-mcp@latest --help` to see all available configuration options.
 
 ## Concepts
@@ -540,7 +584,73 @@ all instances of `chrome-devtools-mcp`. Set the `isolated` option to `true`
 to use a temporary user data dir instead which will be cleared automatically after
 the browser is closed.
 
-### Connecting to a running Chrome instance
+### Multi-browser support
+
+Chrome DevTools MCP can manage multiple browser instances simultaneously. Each tool accepts an optional `browserIndex` parameter to target a specific browser.
+
+### Single browser mode (default)
+
+When only one browser is configured, tools work without the `browserIndex` parameter (backward compatible):
+
+```bash
+npx -y chrome-devtools-mcp@latest
+# Or connect to existing browser:
+npx -y chrome-devtools-mcp@latest --browserUrl http://localhost:9222
+```
+
+### Multiple browsers
+
+Configure multiple browsers using repeated `--browserUrl` or `--wsEndpoint` flags:
+
+```bash
+# Two local debugging ports
+npx -y chrome-devtools-mcp@latest \
+  --browserUrl http://localhost:9222 \
+  --browserUrl http://localhost:9223
+
+# Mix of connection methods
+npx -y chrome-devtools-mcp@latest \
+  --browserUrl http://localhost:9222 \
+  --wsEndpoint ws://remote-host:9223/devtools/browser/abc123
+```
+
+### Auto-restart on reconnection
+
+Add a start command after `|` to automatically restart the browser when reconnection is triggered:
+
+```bash
+npx -y chrome-devtools-mcp@latest \
+  --browserUrl "http://localhost:9222|chrome --remote-debugging-port=9222 --user-data-dir=/tmp/chrome1" \
+  --browserUrl "http://localhost:9223|chrome --remote-debugging-port=9223 --user-data-dir=/tmp/chrome2"
+```
+
+⚠️ **Security**: The start command executes via shell with the server's privileges. Only use trusted commands.
+
+### Using browserIndex in tools
+
+With multiple browsers, specify which browser to target:
+
+```python
+# List all browsers
+await use_mcp_tool("chrome-devtools", "list_browsers", {})
+# Output: [1] http://localhost:9222 - connected
+#         [2] http://localhost:9223 - connected
+
+# Take screenshot from browser 1
+await use_mcp_tool("chrome-devtools", "take_screenshot", {
+    "browserIndex": 1
+})
+
+# Navigate page in browser 2
+await use_mcp_tool("chrome-devtools", "navigate_page", {
+    "browserIndex": 2,
+    "url": "https://example.com"
+})
+```
+
+**Note**: In multi-browser mode, omitting `browserIndex` will result in an error. Use `list_browsers` to see available browser indices.
+
+## Connecting to a running Chrome instance
 
 By default, the Chrome DevTools MCP server will start a new Chrome instance with a dedicated profile. This might not be ideal in all situations:
 
