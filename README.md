@@ -36,6 +36,10 @@ presenting field data alongside lab data. This data is collected by the [Chrome
 User Experience Report (CrUX)](https://developer.chrome.com/docs/crux). To disable
 this, run with the `--no-performance-crux` flag.
 
+### **Browser start commands**
+
+When using the `--browserUrl` parameter with a start command (e.g., `--browserUrl "http://localhost:9222|chrome --remote-debugging-port=9222"`), the command after the `|` separator will be executed via shell when reconnection is triggered. **This command runs with the same privileges as the MCP server process.** Only configure start commands you trust, as they can perform any operation the server process has permission to execute.
+
 ## **Usage statistics**
 
 Google collects usage statistics (such as tool invocation success rates, latency, and environment information) to improve the reliability and performance of Chrome DevTools MCP.
@@ -580,7 +584,73 @@ all instances of `chrome-devtools-mcp`. Set the `isolated` option to `true`
 to use a temporary user data dir instead which will be cleared automatically after
 the browser is closed.
 
-### Connecting to a running Chrome instance
+### Multi-browser support
+
+Chrome DevTools MCP can manage multiple browser instances simultaneously. Each tool accepts an optional `browserIndex` parameter to target a specific browser.
+
+### Single browser mode (default)
+
+When only one browser is configured, tools work without the `browserIndex` parameter (backward compatible):
+
+```bash
+npx -y chrome-devtools-mcp@latest
+# Or connect to existing browser:
+npx -y chrome-devtools-mcp@latest --browserUrl http://localhost:9222
+```
+
+### Multiple browsers
+
+Configure multiple browsers using repeated `--browserUrl` or `--wsEndpoint` flags:
+
+```bash
+# Two local debugging ports
+npx -y chrome-devtools-mcp@latest \
+  --browserUrl http://localhost:9222 \
+  --browserUrl http://localhost:9223
+
+# Mix of connection methods
+npx -y chrome-devtools-mcp@latest \
+  --browserUrl http://localhost:9222 \
+  --wsEndpoint ws://remote-host:9223/devtools/browser/abc123
+```
+
+### Auto-restart on reconnection
+
+Add a start command after `|` to automatically restart the browser when reconnection is triggered:
+
+```bash
+npx -y chrome-devtools-mcp@latest \
+  --browserUrl "http://localhost:9222|chrome --remote-debugging-port=9222 --user-data-dir=/tmp/chrome1" \
+  --browserUrl "http://localhost:9223|chrome --remote-debugging-port=9223 --user-data-dir=/tmp/chrome2"
+```
+
+⚠️ **Security**: The start command executes via shell with the server's privileges. Only use trusted commands.
+
+### Using browserIndex in tools
+
+With multiple browsers, specify which browser to target:
+
+```python
+# List all browsers
+await use_mcp_tool("chrome-devtools", "list_browsers", {})
+# Output: [1] http://localhost:9222 - connected
+#         [2] http://localhost:9223 - connected
+
+# Take screenshot from browser 1
+await use_mcp_tool("chrome-devtools", "take_screenshot", {
+    "browserIndex": 1
+})
+
+# Navigate page in browser 2
+await use_mcp_tool("chrome-devtools", "navigate_page", {
+    "browserIndex": 2,
+    "url": "https://example.com"
+})
+```
+
+**Note**: In multi-browser mode, omitting `browserIndex` will result in an error. Use `list_browsers` to see available browser indices.
+
+## Connecting to a running Chrome instance
 
 By default, the Chrome DevTools MCP server will start a new Chrome instance with a dedicated profile. This might not be ideal in all situations:
 

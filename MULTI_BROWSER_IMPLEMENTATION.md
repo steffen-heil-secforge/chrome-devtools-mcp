@@ -22,25 +22,60 @@ The MCP server now supports connecting to multiple browser instances simultaneou
 
 ### 1. Browser Registry ([src/BrowserRegistry.ts](src/BrowserRegistry.ts))
 
-New class to manage multiple browser instances:
+New class to manage multiple browser instances with lazy connection model:
 
-- `add(browser, context, url)`: Register a new browser
-- `get(index)`: Get a specific browser entry
+**Registration Methods:**
+- `register(config, url)`: Register a browser configuration without connecting (lazy initialization)
+- `addConnectedBrowser(browser, context, url)`: Add an already-connected browser (for testing/backward compatibility)
+
+**Connection Management:**
+- `connect(index, force?, runStartCommand?)`: Attempt connection to a browser with retry logic
+- `ensureConnected(index)`: Ensure browser is connected, respecting cooldown period
+- `reconnect(index, force?)`: Manually reconnect to a disconnected browser
+- `connectAllInBackground()`: Start connecting all registered browsers in background
+
+**Query Methods:**
+- `get(index)`: Get a specific browser entry (1-based index)
 - `getContext(index?)`: Get context for a browser. When only one browser exists, index MUST be undefined (throws error if specified). When multiple browsers exist, index is required (throws error if undefined).
 - `getAll()`: List all registered browsers
 - `count()`: Number of registered browsers
+- `isEmpty()`: Check if no browsers are registered
 - `hasMultipleBrowsers()`: Check if multiple browsers are registered
+- `canRetry(index)`: Check if reconnection can be attempted (respects cooldown)
+
+**Lifecycle:**
+- `disposeAll()`: Close all browsers and clear registry
+
+**Connection States:**
+- `pending`: Browser registered but not yet connected
+- `connecting`: Connection attempt in progress
+- `connected`: Browser successfully connected
+- `disconnected`: Connection lost or failed
+
+**Features:**
+- Mutex-protected connections (prevents concurrent connection attempts)
+- Automatic retry with exponential backoff
+- 60-second cooldown between reconnection attempts
+- Optional startCommand execution for browser restart
+- Last error and attempt timestamp tracking
 
 ### 2. CLI Changes ([src/cli.ts](src/cli.ts))
 
 - `--browserUrl` now accepts multiple values: `--browserUrl http://127.0.0.1:9222 --browserUrl http://127.0.0.1:9223`
+- `--browserUrl` supports optional start command: `--browserUrl "http://localhost:9222|chrome --remote-debugging-port=9222"`
+  - The command after `|` is executed when reconnection is requested and browser is not reachable
+  - ⚠️ **Security**: Command runs with server privileges via shell - only use trusted commands
 - `--wsEndpoint` now accepts multiple values: `--wsEndpoint ws://...  --wsEndpoint ws://...`
 
 ### 3. Main Server Changes ([src/main.ts](src/main.ts))
 
-- `initializeBrowsers()`: Initializes all configured browsers at startup
-- `getBrowserRegistry()`: Exports the browser registry for tool access
-- Tool handler updated to extract `browserIndex` from params and route to correct browser
+- `registerBrowserConfigs()`: Registers browser configurations without connecting (lazy initialization)
+- Browser registry is exported as singleton via `BrowserRegistry.getInstance()`
+- Tool handler updated to:
+  - Extract `browserIndex` from params
+  - Call `registry.getContext(browserIndex)` to get the appropriate browser context
+  - Automatically trigger connection if browser is not yet connected
+  - Route tool execution to the correct browser
 
 ### 4. Tool Definition Changes
 

@@ -77,8 +77,12 @@ export const closePage = defineTool({
     try {
       await context.closePage(request.params.pageId);
     } catch (err) {
-      if (err.message === CLOSE_PAGE_ERROR) {
-        response.appendResponseLine(err.message);
+      const message =
+        err && typeof err === 'object' && 'message' in err
+          ? String(err.message)
+          : String(err);
+      if (message === CLOSE_PAGE_ERROR) {
+        response.appendResponseLine(message);
       } else {
         throw err;
       }

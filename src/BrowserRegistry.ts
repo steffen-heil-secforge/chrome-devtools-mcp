@@ -74,6 +74,14 @@ export class BrowserRegistry {
   }
 
   /**
+   * Reset the singleton instance. Should only be used in tests.
+   * @internal
+   */
+  static resetForTesting(): void {
+    BrowserRegistry.instance = null;
+  }
+
+  /**
    * Register a browser configuration without connecting.
    * @returns The index of the registered browser (1-based)
    */
@@ -176,9 +184,14 @@ export class BrowserRegistry {
     // Acquire mutex to prevent duplicate connection attempts
     const guard = await entry.connectionMutex.acquire();
     try {
-      // Double-check after acquiring mutex (unless forced)
+      // Re-check state after acquiring mutex to prevent race condition
       if (!force && entry.state === 'connected' && entry.browser?.connected) {
-        return entry.context!;
+        if (!entry.context) {
+          throw new Error(
+            `Browser ${index} is marked as connected but context is missing`,
+          );
+        }
+        return entry.context;
       }
 
       // Dispose old context if exists
@@ -194,7 +207,7 @@ export class BrowserRegistry {
         `Connecting to browser ${index}: ${entry.config.browserURL || entry.config.wsEndpoint || 'launch'}`,
       );
 
-      let browser: Browser;
+      let browser: Browser | undefined;
       try {
         browser = await this.tryConnect(entry);
       } catch (firstError) {
@@ -233,13 +246,19 @@ export class BrowserRegistry {
         }
       }
 
+      if (!browser) {
+        throw new Error(
+          `Failed to connect to browser ${index} after all retry attempts`,
+        );
+      }
+
       const context = await McpContext.from(
-        browser!,
+        browser,
         logger,
         entry.config.mcpContextOptions,
       );
 
-      entry.browser = browser!;
+      entry.browser = browser;
       entry.context = context;
       entry.state = 'connected';
       entry.lastError = undefined;
